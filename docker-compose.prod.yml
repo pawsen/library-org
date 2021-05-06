@@ -1,0 +1,20 @@
+
+version: '3.8'
+
+services:
+ web:
+  build:
+   dockerfile: ./src/Dockerfile.prod
+   context: .
+  ports:
+  - 5000:5000
+  env_file:
+  - ./.env.prod
+  command: [
+        "gunicorn",
+        "--chdir", "./src",
+        # "--reload", # restart workers when code changes
+        "--bind",
+        "0.0.0.0:5000",
+        "manage:app"
+    ]

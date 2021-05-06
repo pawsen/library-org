@@ -1,5 +1,3 @@
-"""
-"""
 from flask import Flask, render_template, redirect, url_for, request, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql.expression import func
@@ -15,12 +13,13 @@ import requests
 import json
 
 import os
+from pathlib import Path
 import configparser
 
-PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
-
+p =  Path(__file__).absolute()
+PROJECT_ROOT = p.parent
 CONFIG_FILE = "library.cfg"
-CONFIG_PATH = os.path.join(PROJECT_ROOT, CONFIG_FILE)
+CONFIG_PATH = p.parents[1] / CONFIG_FILE
 CONFIG = configparser.ConfigParser()
 CONFIG.read(CONFIG_PATH)
 
