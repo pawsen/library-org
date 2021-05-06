@@ -1,14 +1,23 @@
+upstream library {
+    server 34.90.213.110:5000;
+}
+
 server {
-  listen 80;
-  server_name library.noisebridge.net;
-  charset	utf-8;
-  client_max_body_size 75M;
+    listen 80;
 
-  location / {
-    root /var/www/library.noisebridge.net/library-org/static/;
+    location / {
+        proxy_pass http://library;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_redirect off;
+    }
 
-    include uwsgi_params;
-    uwsgi_pass unix:///var/run/uwsgi/app/library-org/socket;
-    uwsgi_param SCRIPT_NAME /;
-  }
+    # location /static/ {
+    #     alias /home/app/web/project/static/;
+    # }
+
+    # location /media/ {
+    #     alias /home/app/web/project/media/;
+    # }
+
 }
