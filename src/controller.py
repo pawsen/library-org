@@ -16,7 +16,7 @@ import os
 from pathlib import Path
 import configparser
 
-p =  Path(__file__).absolute()
+p = Path(__file__).absolute()
 PROJECT_ROOT = p.parent
 CONFIG_FILE = "library.cfg"
 CONFIG_PATH = p.parents[1] / CONFIG_FILE
@@ -145,12 +145,16 @@ class Book(db.Model):
 
 class BookForm(Form):
     olid = StringField("olid", [validators.Length(min=4, max=20)])
+    isbn = StringField(
+        "isbn", [validators.Length(min=10, max=13), validators.Regexp(r"^[0-9X]*$")]
+    )
 
 
 class SecretSubmitForm(Form):
     """Used on any form where a passphrase is required to submit books."""
 
-    secret = StringField("olid", [validators.Length(min=1, max=200)])
+    # secret = StringField('olid', [validators.Length(min=1, max=200)])
+    secret = StringField("isbn", [validators.Length(min=1, max=200)])
 
 
 class SampleForm(Form):
@@ -227,23 +231,27 @@ def submit(secret=None):
 
 
 @app.route("/new/", methods=("GET", "POST"))
-def new_book(olid=None):
+# def new_book(olid=None):
+def new_book(isbn=None):
     """Allow a new book to be added to the database."""
     book_form = BookForm(request.form)
     secret_form = SecretSubmitForm(request.form)
     if request.method == "GET":
         pass
 
-    if request.method == "POST" and book_form.validate():
-        olid = book_form.olid.data
-        book_exists = Book.query.filter_by(olid=olid).first()
+    if request.method == "POST":  # and book_form.validate():
+        isbn = book_form.isbn.data
+        book_exists = Book.query.filter_by(isbn=isbn).first()
+        # olid = book_form.olid.data
+        # book_exists = Book.query.filter_by(olid=olid).first()
 
         if book_exists:
+            # return render_template("new_book.html", book_form=book_form, secret_form=secret_form, olid=olid, book=book_exists, book_exists=True)
             return render_template(
                 "new_book.html",
                 book_form=book_form,
                 secret_form=secret_form,
-                olid=olid,
+                isbn=isbn,
                 book=book_exists,
                 book_exists=True,
             )
@@ -251,16 +259,17 @@ def new_book(olid=None):
             # make a book object, render it, and if the user submits, then ingest it.
             # SO -  we need to get the ingestion script repackaged so a single run of the ingester
             #       can be imported as a function.
-            URL = "https://openlibrary.org/api/books?bibkeys=OLID:{olid}&jscmd=data&format=json"
-            r = requests.get(URL.format(olid=olid))
-
+            # URL = "https://openlibrary.org/api/books?bibkeys=OLID:{olid}&jscmd=data&format=json"
+            # r = requests.get(URL.format(olid=olid))
+            URL = "https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&jscmd=data&format=json"
+            r = requests.get(URL.format(isbn=isbn))
             if r.status_code == 200:
 
                 if r.json():
+                    # bookdata_list = reorganize_openlibrary_data("OLID:"+olid, r.json()["OLID:"+olid])
                     bookdata_list = reorganize_openlibrary_data(
-                        "OLID:" + olid, r.json()["OLID:" + olid]
+                        "ISBN:" + isbn, r.json()["ISBN:" + isbn]
                     )
-
                     session["bookdata"] = json.dumps(bookdata_list)
 
                     # this bookdata_list needs to be a dict,
@@ -272,10 +281,11 @@ def new_book(olid=None):
                         "new_book.html",
                         book_form=book_form,
                         secret_form=secret_form,
-                        olid=olid,
+                        isbn=isbn,
                         book=bookdata,
                         book_exists=False,
                     )
+                    # return render_template("new_book.html", book_form=book_form, secret_form=secret_form, olid=olid, book=bookdata, book_exists=False)
 
                     # this doesn't go here, this happens when the user verifies the book is right
                     # db.session.add(bookdata)
@@ -286,8 +296,9 @@ def new_book(olid=None):
                 pass
                 # this is rendered as logic in the view lol
 
+    # return render_template("new_book.html", book_form=book_form, secret_form=secret_form, olid=olid)
     return render_template(
-        "new_book.html", book_form=book_form, secret_form=secret_form, olid=olid
+        "new_book.html", book_form=book_form, secret_form=secret_form, isbn=isbn
     )
 
 
