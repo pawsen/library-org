@@ -2,6 +2,10 @@
 
 
 
+* flask rewrite route
+https://stackoverflow.com/a/57488486
+
+* ideas
 https://en.wikipedia.org/wiki/Universal_Product_Code
 
 https://openlibrary.org/

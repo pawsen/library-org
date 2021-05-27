@@ -1,37 +1,26 @@
 ### Library Organization Project
 
-This project provides organized data about the contents of a library.
-
-
 ##### Project Status
 
-Alpha released.
-
+Missing features
+- manual `create a new book` page. The current way to create a new entry, is to `submit-by-isbn` which tries retrieve info about a book from google-books and openlibrary.org.
+- upload files(pdf) which then can be found from the `index` page,
+- some kind of textual mapping of location, ie. `2.12` is `Asia`.
 
 ##### Getting Started
-1. fork and clone this repository
-2. [create] (https://virtualenvwrapper.readthedocs.org) and activate a [virtualenv] (https://virtualenv.pypa.io)
-3. pip install -r requirements.txt
-4. cd [static] (static/README.md) && npm install && gulp
-5. cp database/books-sample.sqlite database/books.sqlite
-6. python controller.py
-7. go to [localhost:5000] (http://localhost:5000) in the browser
+- fork and clone this repository
+- install in a virtual env. or run the docker-compose file
+ie.
+``` sh
+pip install -r requirements.txt
+FLASK_APP=controller.py python src/manage.py run  # or
+python src/controller.py
+```
+OR 
 
+``` sh
+docker-compose up -d  # or for production
+docker-compose up -d -f docker-compose.prod.yml
+```
+- go to [localhost:5000] (http://localhost:5000) in the browser
 
-##### Features on-deck:
-
-1. Advanced Search
-2. API
-3. New Book submit-by-isbn with requests to multiple services. User selects service to pull data from.
-
-
-### API Options:
-
-Programmable Web lists 49 library APIs:
-http://www.programmableweb.com/category/library%2Breference/apis?category=20272%2C20066
-librarything seems to be a very good 'tooling' api: http://www.librarything.com/api
-
-### Issues:
-
-Database is currently unique on isbn, we care about being unique on open library id, maybe isbn.
-There is a place in control flow, the new book form that still relies on ISBN being unique. This should probably wholesale convert to LCCN and still allow people to enter by isbn for convenience. This adds some complexity as there are a great many isbns for one book.
