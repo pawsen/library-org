@@ -362,12 +362,12 @@ def detail(id=1):
 
     # dynamically populate locations into SelectField
     location_choices = [
-        (l.id, l.label_name) for l in Location.query.order_by("label_name")
+        (l.id, f"{l.label_name}, {l.full_name}" ) for l in Location.query.order_by("label_name")
     ]
     location_form = LocationForm()
 
     if request.method == "POST":
-        book.location = location_form.location.data
+        book.location = int(request.form["location"])
         db.session.commit()
 
     location_form.location.choices = location_choices + [
