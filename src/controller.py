@@ -5,7 +5,7 @@ from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 
 from flask_wtf import Form, RecaptchaField
-from wtforms import StringField, TextField, SelectField, validators
+from wtforms import StringField, SelectField, validators
 
 from request_book import reorganize_openlibrary_data
 
@@ -418,7 +418,8 @@ def index(page=1):
     # (make this more general for an all fields search)
     if s:
         books = (
-            Book.query.order_by(Book.title.asc())
+            db.session.query(Book, Location).join(Location, Book.location == Location.id)
+            .order_by(Book.title.asc())
             .filter(
                 or_(
                     Book.title.contains(s),
@@ -426,14 +427,15 @@ def index(page=1):
                     Book.subjects.contains(s),
                 )
             )
-            .paginate(page, PAGINATE_BY_HOWMANY, False)
+            .paginate(page=page, per_page=PAGINATE_BY_HOWMANY, error_out=False)
         )
 
     # return all books, currently sort by title ascending.
     else:
-        books = Book.query.order_by(Book.title.asc()).paginate(
-            page, PAGINATE_BY_HOWMANY, False
-        )
+        books = db.session.query(Book, Location)\
+            .join(Location, Book.location == Location.id)\
+            .order_by(Book.title.asc())\
+            .paginate(page=page, per_page=PAGINATE_BY_HOWMANY, error_out=False)
 
     return render_template("index.html", books=books, s=s)
 
