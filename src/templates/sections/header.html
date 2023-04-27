@@ -7,22 +7,22 @@
   <header class="wrapper clearfix">
     <div class="row">
 
-      <a href="/index/"><h1 class="title col-xs-5">Blocs&amp;Walls Library</h1></a>
+      <a href="/index"><h1 class="title col-xs-5">Blocs&amp;Walls Library</h1></a>
 
       
       <div class="col-xs-4">
-        <form class="search-form" action="/index/1/" method="post">
+        <form class="search-form" action="/index/1" method="post">
           <fieldset class="form-group">
               <input type="search" name="search" class="form-control" id="search" placeholder="e.g. title, author, or subject (substring)" {% if s %} value="{{ s }}" {% endif %}>
           </fieldset>
           <button type="submit" class="pull-right btn btn-primary">Search</button>
         </form>
-          <a href="/all/"><button type="button" class="pull-left btn btn-default">View All Books Now</button></a>
+          <a href="/all"><button type="button" class="pull-left btn btn-default">View All Books Now</button></a>
       </div>
 
       <div class="col-xs-3">
-        <a href="/explore/"><button type="explore" class="btn btn-default btn-circle">Explore</button></a>
-        <a href="/new/"><button type="new" class="btn btn-info btn-circle">New</button></a>
+        <a href="/explore"><button type="explore" class="btn btn-default btn-circle">Explore</button></a>
+        <a href="/new"><button type="new" class="btn btn-info btn-circle">New</button></a>
       </div>
 
     </div>

@@ -184,7 +184,7 @@ class NewLocationForm(Form):
     )
 
 
-@app.route("/sampleform/", methods=("GET", "POST"))
+@app.route("/sampleform", methods=("GET", "POST"))
 def sampleform():
     form = SampleForm()
     if form.validate_on_submit():
@@ -192,19 +192,19 @@ def sampleform():
     return render_template("sampleform.html", form=form)
 
 
-@app.route("/test/")
+@app.route("/test")
 def test():
     """Test frontend integration"""
     return render_template("test.html")
 
 
-@app.route("/index/")
+@app.route("/index")
 @app.route("/")
 def home():
     return redirect(url_for("index", page=1))
 
 
-@app.route("/submit/", methods=("GET", "POST"))
+@app.route("/submit", methods=("GET", "POST"))
 def submit(secret=None):
     secret_form = SecretSubmitForm(request.form)
     if request.method == "GET":
@@ -239,7 +239,7 @@ def submit(secret=None):
         return "book already exists. how did you get here?"
 
 
-@app.route("/new/", methods=("GET", "POST"))
+@app.route("/new", methods=("GET", "POST"))
 # def new_book(olid=None):
 def new_book(isbn=None):
     """Allow a new book to be added to the database."""
@@ -311,7 +311,7 @@ def new_book(isbn=None):
     )
 
 
-@app.route("/all/")
+@app.route("/all")
 def all():
     """Show everything on one page.
 
@@ -324,7 +324,7 @@ def all():
     return render_template("all.html", books=books)
 
 
-@app.route("/new_location/", methods=["GET", "POST"])
+@app.route("/new_location", methods=["GET", "POST"])
 def new_location(new_location=None, new_location_submit_secret=None):
     """Register a new location"""
 
@@ -360,7 +360,7 @@ def new_location(new_location=None, new_location_submit_secret=None):
     )
 
 
-@app.route("/detail/<int:id>/", methods=["GET", "POST"])
+@app.route("/detail/<int:id>", methods=["GET", "POST"])
 def detail(id=1):
     """Show an individual work"""
 
@@ -393,14 +393,14 @@ def detail(id=1):
     )
 
 
-@app.route("/explore/")
+@app.route("/explore")
 def explore():
     """Return a randomized all template."""
     books = Book.query.order_by(func.random())
     return render_template("explore.html", books=books)
 
 
-@app.route("/index/<int:page>/", methods=["GET", "POST"])
+@app.route("/index/<int:page>", methods=["GET", "POST"])
 def index(page=1):
     """Show an index of books, provide some basic searchability.
 
