@@ -12,7 +12,7 @@ services:
   - ./.env.prod
   command: [
         "gunicorn",
-        "--chdir", "./src",
+        # "--chdir", "./src",
         # "--reload", # restart workers when code changes
         "--bind",
         "0.0.0.0:5000",

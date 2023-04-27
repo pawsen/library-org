@@ -12,14 +12,23 @@ from request_book import reorganize_openlibrary_data
 import requests
 import json
 
+import configparser
 import os
 from pathlib import Path
-import configparser
+import sys
 
 p = Path(__file__).absolute()
-PROJECT_ROOT = p.parent
 CONFIG_FILE = "library.cfg"
-CONFIG_PATH = p.parents[1] / CONFIG_FILE
+PROJECT_ROOT = p.parent
+# library.cfg is either in this dir(PROJECT_ROOT) or parent
+for fpath in [p.parents[1], PROJECT_ROOT]:
+    CONFIG_PATH = fpath / CONFIG_FILE
+    if CONFIG_PATH.is_file():
+        break
+else:
+    sys.exit(
+        f"{CONFIG_FILE} was not found in src or parent dir. Remember to create it from 'LIBRARY.cfg_EXAMPLE' ")
+
 CONFIG = configparser.ConfigParser()
 CONFIG.read(CONFIG_PATH)
 

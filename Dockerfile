@@ -13,6 +13,7 @@ WORKDIR /code
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 
-COPY . .
+COPY library.cfg .
+COPY src .
 
 CMD ["python", "-m", "flask", "run", "--host=0.0.0.0"]

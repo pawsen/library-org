@@ -4,7 +4,7 @@ version: '3.8'
 services:
  web:
   build:
-   dockerfile: ./src/Dockerfile
+   dockerfile: ./Dockerfile
    context: .
   ports:
   - 5000:5000
@@ -12,7 +12,7 @@ services:
   - ./:/code
   env_file:
   - ./.env.dev
-  command: python ./src/manage.py run -h 0.0.0.0 -p 5000
+  # command: ["python", "-m", "flask", "run", "--host=0.0.0.0"]
 
 #  mysqldb:
 #   image: mysql
