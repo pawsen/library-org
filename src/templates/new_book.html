@@ -17,7 +17,7 @@
 
     {% from "_formhelpers.html" import render_field %}
     <form class="new-book-form" method="POST" action="/new/">
-      {{ book_form.hidden_tag() }}
+      {{ book_form.hidden_tag }}
 
       <fieldset class="form-group">
         {{ render_field(book_form.isbn, class="form-control", placeholder="[0-9] and X only. no hyphens. 10 or 13 characters.") }}
@@ -40,7 +40,7 @@
       {% else %}
         {% from "_formhelpers.html" import render_field %}
         <form class="new-book-form" method="POST" action="/submit/">
-          {{ secret_form.hidden_tag() }}
+          {{ secret_form.hidden_tag }}
 
           <fieldset class="form-group">
             {{ render_field(secret_form.secret, class="form-control", placeholder="Please enter the secret passphrase here.") }}
