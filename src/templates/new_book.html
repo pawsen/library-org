@@ -40,7 +40,6 @@
       {% else %}
         {% from "_formhelpers.html" import render_field %}
         <form class="new-book-form" method="POST" action="/submit">
-          {{ secret_form.hidden_tag }}
 
           <button type="submit" class="btn btn-primary">Verify and Submit</button>
         </form>

@@ -165,17 +165,6 @@ class BookForm(Form):
     )
 
 
-class SecretSubmitForm(Form):
-    """Used on any form where a passphrase is required to submit books."""
-
-    # secret = StringField('olid', [validators.Length(min=1, max=200)])
-    secret = StringField("isbn", [validators.Length(min=1, max=200)])
-
-
-class SampleForm(Form):
-    name = StringField("name", validators=[validators.DataRequired()])
-
-
 class LocationForm(Form):
     # attach form.location.choices = location_options after instantiation!!
     # http://wtforms.readthedocs.io/en/latest/fields.html#wtforms.fields.SelectField
@@ -188,14 +177,6 @@ class NewLocationForm(Form):
     location_entry_secret = StringField(
         "location_entry_secret", validators=[validators.Length(min=1, max=200)]
     )
-
-
-@app.route("/sampleform", methods=("GET", "POST"))
-def sampleform():
-    form = SampleForm()
-    if form.validate_on_submit():
-        return redirect("/sampleform")
-    return render_template("sampleform.html", form=form)
 
 
 @app.route("/test")
@@ -247,10 +228,8 @@ def submit():
 def new_book(isbn=None):
     """Allow a new book to be added to the database."""
     book_form = BookForm(request.form)
-    secret_form = SecretSubmitForm(request.form)
-    if request.method == "GET":
-        pass
-    elif request.method == "POST" and not session.get("logged_in", False):
+
+    if request.method == "POST" and not session.get("logged_in", False):
         return '<h1>You are not logged in.</h1>'
     elif request.method == "POST":
         isbn = book_form.isbn.data
@@ -277,7 +256,6 @@ def new_book(isbn=None):
             URL = "https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&jscmd=data&format=json"
             r = requests.get(URL.format(isbn=isbn))
             if r.status_code == 200:
-
                 if r.json():
                     # bookdata_list = reorganize_openlibrary_data("OLID:"+olid, r.json()["OLID:"+olid])
                     bookdata_list = reorganize_openlibrary_data(
@@ -293,25 +271,13 @@ def new_book(isbn=None):
                     return render_template(
                         "new_book.html",
                         book_form=book_form,
-                        secret_form=secret_form,
                         isbn=isbn,
                         book=bookdata,
                         book_exists=False,
                     )
-                    # return render_template("new_book.html", book_form=book_form, secret_form=secret_form, olid=olid, book=bookdata, book_exists=False)
 
-                    # this doesn't go here, this happens when the user verifies the book is right
-                    # db.session.add(bookdata)
-                else:
-                    pass
-                    # this is rendered as logic in the view lol
-            else:
-                pass
-                # this is rendered as logic in the view lol
-
-    # return render_template("new_book.html", book_form=book_form, secret_form=secret_form, olid=olid)
     return render_template(
-        "new_book.html", book_form=book_form, secret_form=secret_form, isbn=isbn
+        "new_book.html", book_form=book_form, isbn=isbn
     )
 
 
