@@ -16,7 +16,7 @@
   <div class="col-xs-4 col-xs-offset-4">
 
     {% from "_formhelpers.html" import render_field %}
-    <form class="new-book-form" method="POST" action="/new/">
+    <form class="new-book-form" method="POST" action="/new">
       {{ book_form.hidden_tag }}
 
       <fieldset class="form-group">
@@ -39,12 +39,8 @@
         <h3 class="explanation-header">The book is ready to go on the shelf (we don't track quantity).</h3>
       {% else %}
         {% from "_formhelpers.html" import render_field %}
-        <form class="new-book-form" method="POST" action="/submit/">
+        <form class="new-book-form" method="POST" action="/submit">
           {{ secret_form.hidden_tag }}
-
-          <fieldset class="form-group">
-            {{ render_field(secret_form.secret, class="form-control", placeholder="Please enter the secret passphrase here.") }}
-          </fieldset>
 
           <button type="submit" class="btn btn-primary">Verify and Submit</button>
         </form>

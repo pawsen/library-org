@@ -25,6 +25,16 @@
         <a href="/new"><button type="new" class="btn btn-info btn-circle">New</button></a>
       </div>
 
+      {% if session['logged_in'] %}
+          <li class="nav-item">
+              <a class="nav-link js-scroll-trigger" href="/logout">Logout &nbsp;</a>
+          </li>
+      {% else %}
+          <li class="nav-item">
+              <a class="nav-link js-scroll-trigger" href="/login">Login &nbsp;</a>
+          </li>
+      {% endif %}
+
     </div>
   </header>
 </div>

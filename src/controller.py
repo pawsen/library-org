@@ -17,7 +17,11 @@ import os
 from pathlib import Path
 import sys
 
-p = Path(__file__).absolute()
+try:
+    p = Path(__file__).absolute()
+except NameError:
+    # we're in repl
+    p = Path.cwd() / 'controller.py'
 CONFIG_FILE = "library.cfg"
 PROJECT_ROOT = p.parent
 # library.cfg is either in this dir(PROJECT_ROOT) or parent
@@ -39,6 +43,8 @@ NEW_ISBN_SUBMIT_SECRET = CONFIG.get("secrets", "NEW_ISBN_SUBMIT_SECRET")
 NEW_LOCATION_SUBMIT_SECRET = CONFIG.get("secrets", "NEW_LOCATION_SUBMIT_SECRET")
 RECAPTCHA_PUBLIC_KEY = CONFIG.get("secrets", "RECAPTCHA_PUBLIC_KEY")
 RECAPTCHA_PRIVATE_KEY = CONFIG.get("secrets", "RECAPTCHA_PRIVATE_KEY")
+USER = {"username": CONFIG.get("secrets", "USERNAME"),
+        "password": CONFIG.get("secrets", "PASSWORD")}
 
 db_name = "books.sqlite"
 DB_DIR = "database"
@@ -205,18 +211,15 @@ def home():
 
 
 @app.route("/submit", methods=("GET", "POST"))
-def submit(secret=None):
-    secret_form = SecretSubmitForm(request.form)
+def submit():
+    """Submit the book found from new_book"""
     if request.method == "GET":
         return redirect(url_for("new_book"))
-    if request.method == "POST" and secret_form.validate():
-        secret = secret_form.secret.data
-
-    if secret != NEW_ISBN_SUBMIT_SECRET:
-        return "Bad Secret, try again. This page will be more friendly later :-)"
+    if request.method == "POST" and not session.get("logged_in", False):
+        return '<h1>You are not logged in.</h1>'
 
     bookdata_list = session.get("bookdata", None)
-    session.clear()
+    session.pop("bookdata", None)
     if bookdata_list:
         bookdata_list = json.loads(bookdata_list)
         # this bookdata_list obviously needs to be a dict,
@@ -247,8 +250,9 @@ def new_book(isbn=None):
     secret_form = SecretSubmitForm(request.form)
     if request.method == "GET":
         pass
-
-    if request.method == "POST":  # and book_form.validate():
+    elif request.method == "POST" and not session.get("logged_in", False):
+        return '<h1>You are not logged in.</h1>'
+    elif request.method == "POST":
         isbn = book_form.isbn.data
         book_exists = Book.query.filter_by(isbn=isbn).first()
         # olid = book_form.olid.data
@@ -352,8 +356,7 @@ def detail(id=1):
     """Show an individual work"""
 
     newbookflash = session.get("newbookflash", False)
-    session.clear()
-
+    session.pop("newbookflash", None)
     book = Book.query.get(id)
 
     # dynamically populate locations into SelectField
@@ -362,9 +365,11 @@ def detail(id=1):
     ]
     location_form = LocationForm()
 
-    if request.method == "POST":
+    if request.method == "POST" and session.get("logged_in", False):
         book.location = int(request.form["location"])
         db.session.commit()
+    elif request.method == "POST":
+        return '<h1>You are not logged in.</h1>'
 
     location_form.location.choices = location_choices + [
         (-1, u"-- Add the correct location --")
@@ -374,7 +379,6 @@ def detail(id=1):
     else:
         location_form.location.default = -1  # give a prompt in the SelectField
     location_form.process()
-
     return render_template(
         "detail.html", book=book, newbookflash=newbookflash, location_form=location_form
     )
@@ -439,6 +443,27 @@ def index(page=1):
             .paginate(page=page, per_page=PAGINATE_BY_HOWMANY, error_out=False)
 
     return render_template("index.html", books=books, s=s)
+
+
+@app.route('/login', methods = ['POST', 'GET'])
+def login():
+    if(request.method == 'POST'):
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if username == USER['username'] and password == USER['password']:
+            session['logged_in'] = True
+            # session['user'] = username
+            return redirect('/index')
+
+        return "<h1>Wrong username or password</h1>"    #if the username or password does not matches
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session['logged_in'] = False
+    return redirect('/index')
 
 
 if __name__ == "__main__":
