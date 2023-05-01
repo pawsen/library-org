@@ -324,6 +324,8 @@ def detail(id=1):
     newbookflash = session.get("newbookflash", False)
     session.pop("newbookflash", None)
     book = Book.query.get(id)
+    if book is None:
+        return f"<h1>book id {id} does not exist</h1>"
 
     # dynamically populate locations into SelectField
     location_choices = [

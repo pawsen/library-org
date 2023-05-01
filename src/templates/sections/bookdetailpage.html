@@ -1,3 +1,14 @@
+<!-- Navigate previous/next book. No /real/ check that id actually exists -->
+<nav>
+    <ul class="nav justify-content-center">
+        <li>
+            <a href="{{ url_for('detail', id=book.id-1) }}">Prev&nbsp;</a>
+        </li>
+        <li>
+            <a href="{{ url_for('detail', id=book.id+1) }}">Next&nbsp;</a>
+        </li>
+    </ul>
+</nav>
 
 <div class="row">
   <div class="col-xs-10 col-xs-offset-1">
@@ -26,12 +37,22 @@
 
         <br>
         <p class="text-underline"><u>External Resources:</u>
-        <p><span class="detail-view-content"></span><a href="http://www.amazon.com/gp/search?index=books&field-isbn={{ book.isbn }}" target="_blank">Amazon Search</a>
-        <p><span class="detail-view-content"></span><a href="https://openlibrary.org/search?q={{ book.olid }}" target="_blank">OpenLibrary Search</a></p>
-        {% if book.openlibrary_preview_url %}
-        <p><span class="detail-view-content"></span><a href="{{ book.openlibrary_preview_url }}" target="_blank">OpenLibrary Preview</a>
+
+        <p><span class="detail-view-content"></span>
+        {% if book.isbn %}
+          <a href="https://www.amazon.com/gp/search?index=books&field-isbn={{ book.isbn }}" target="_blank">Amazon Search</a>
         {% else %}
-        <p class="no-openlibrary-preview">[No OpenLibrary Preview]
+          <a href="https://google.com/search?q={{ book.title }}+{{ book.authors }}" target="_blank">Google Search</a>
+        {% endif %}
+
+        {% if book.olid %}
+        <p><span class="detail-view-content"></span>
+          <a href="https://openlibrary.org/search?q={{ book.olid }}" target="_blank">OpenLibrary Search</a></p>
+        {% endif %}
+
+        {% if book.openlibrary_preview_url %}
+        <p><span class="detail-view-content"></span>
+          <a href="{{ book.openlibrary_preview_url }}" target="_blank">Online Preview</a>
         {% endif %}
 
 
