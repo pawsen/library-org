@@ -395,9 +395,14 @@ def detail(id=1):
 
 @app.route("/explore")
 def explore():
-    """Return a randomized all template."""
-    books = Book.query.order_by(func.random())
-    return render_template("explore.html", books=books)
+    """Return index.html for all books with randomized sorting."""
+
+    books = db.session.query(Book, Location).\
+        join(Location, Book.location == Location.id).filter().order_by(func.random())
+
+    return render_template("index.html",
+                           books=books.paginate(page=1, per_page=len(books.all()), error_out=False),
+                           s="", sort_by="")
 
 
 @app.route("/index/<int:page>", methods=["GET", "POST"])
