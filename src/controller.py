@@ -311,19 +311,6 @@ def new_book(isbn=None):
     )
 
 
-@app.route("/all")
-def all():
-    """Show everything on one page.
-
-    This feature may eventually become a legacy feature.
-    Useful if you wish to use a browser search tool rather than relying on the
-    advanced search.
-    Depends on the fields you want to search being visible in the template.
-    """
-    books = Book.query.order_by(Book.title.asc())
-    return render_template("all.html", books=books)
-
-
 @app.route("/new_location", methods=["GET", "POST"])
 def new_location(new_location=None, new_location_submit_secret=None):
     """Register a new location"""
