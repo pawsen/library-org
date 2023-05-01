@@ -396,6 +396,7 @@ def index(page=1):
                     Book.title.contains(s),
                     Book.authors.contains(s),
                     Book.subjects.contains(s),
+                    Book.isbn.contains(s),
                 )
             )
             .paginate(page=page, per_page=PAGINATE_BY_HOWMANY, error_out=False)
