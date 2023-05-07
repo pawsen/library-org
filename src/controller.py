@@ -4,7 +4,7 @@ from sqlalchemy.sql.expression import func
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 
-from flask_wtf import Form, RecaptchaField
+from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, validators
 
 from request_book import reorganize_openlibrary_data
@@ -158,20 +158,20 @@ class Book(db.Model):
         return "<Title: >".format(self.title)
 
 
-class BookForm(Form):
+class BookForm(FlaskForm):
     olid = StringField("olid", [validators.Length(min=4, max=20)])
     isbn = StringField(
         "isbn", [validators.Length(min=10, max=13), validators.Regexp(r"^[0-9X]*$")]
     )
 
 
-class LocationForm(Form):
+class LocationForm(FlaskForm):
     # attach form.location.choices = location_options after instantiation!!
     # http://wtforms.readthedocs.io/en/latest/fields.html#wtforms.fields.SelectField
     location = SelectField(coerce=int)
 
 
-class NewLocationForm(Form):
+class NewLocationForm(FlaskForm):
     # These constraints are temporary and can change to support the labelling system.
     new_location = StringField("label_name", [validators.Length(min=5, max=10)])
     location_entry_secret = StringField(
