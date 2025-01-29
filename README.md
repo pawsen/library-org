@@ -71,3 +71,23 @@ git clone https://github.com/dbkk-dk/library-org.git
 
 ```
 
+## database migration
+
+If the database is changed, like adding a new model
+
+``` python
+class TransactionLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())  # Auto-timestamp
+    action = db.Column(db.String(50), nullable=False)  # "ADD", "EDIT", "DELETE"
+    book_id = db.Column(db.Integer, db.ForeignKey("book.id"), nullable=True)  # Reference the book
+    book_title = db.Column(db.String(200))  # Store the title at the time of change
+    details = db.Column(db.Text)  # Store what changed
+```
+
+The database is updated with
+
+``` sh
+flask db migrate -m "Add transaction log"
+flask db upgrade
+```

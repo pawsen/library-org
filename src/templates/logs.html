@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block main %}
+<h3>Transaction Logs</h3>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Action</th>
+            <th>Book</th>
+            <th>Details</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td>{{ log.timestamp }}</td>
+            <td>{{ log.action }}</td>
+            <td>
+                {% if log.book_id %}
+                    <a href="{{ url_for('detail', id=log.book_id) }}">{{ log.book_title }}</a>
+                {% else %}
+                    {{ log.book_title }}
+                {% endif %}
+            </td>
+            <td>{{ log.details }}</td>
+
+            <td>
+    {% if log.action == "DELETE" %}
+        <form method="POST" action="{{ url_for('restore_book', log_id=log.id) }}">
+            <button type="submit" class="btn btn-warning btn-sm">Restore</button>
+        </form>
+    {% else %}
+        -
+    {% endif %}
+</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

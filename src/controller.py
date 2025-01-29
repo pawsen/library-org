@@ -1,8 +1,8 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, session
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql.expression import func
 from sqlalchemy import or_, asc, desc
-from sqlalchemy.exc import IntegrityError
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, SelectField, validators
@@ -65,14 +65,11 @@ app.debug = True
 # sqlalchemy configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = sqlite_db
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
+# default pagination
 PAGINATE_BY_HOWMANY = 20
 
-# == recaptcha ==
-# recaptcha disabled - it is ready to be implemented now
-# RECAPTCHA_PARAMETERS = {'hl': 'zh', 'render': 'explicit'}
-# RECAPTCHA_DATA_ATTRS = {'theme': 'dark'}
-# app.config['RECAPTCHA_USE_SSL'] = False
 
 
 class Location(db.Model):
@@ -92,6 +89,15 @@ class Location(db.Model):
 
     def __repr__(self):
         return "<Location Label: >".format(self.label_name)
+
+
+class TransactionLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())  # Auto-timestamp
+    action = db.Column(db.String(50), nullable=False)  # "ADD", "EDIT", "DELETE"
+    book_id = db.Column(db.Integer, db.ForeignKey("book.id"), nullable=True)  # Reference the book
+    book_title = db.Column(db.String(200))  # Store the title at the time of change
+    details = db.Column(db.Text)  # Store what changed
 
 
 class Book(db.Model):
@@ -286,17 +292,17 @@ def add_book():
                 flash("This book already exists in the system. Redirecting to its details page.", "info")
                 return redirect(url_for("detail", id=existing_book.id))  # Redirect to the existing book's detail page
 
+            title=request.form.get("title", "").strip()
+            authors=request.form.get("authors", "").strip()
             # Handle location selection
             location_id = request.form.get("location")
             location_id = int(location_id) if location_id and location_id != "-1" else None
-            title=request.form.get("title", "").strip()
-            authors=request.form.get("authors", "").strip()
             if not title or not authors or not location_id:
                 flash("Title, Authors, and Location are required fields!", "danger")
                 return redirect(url_for('add_book'))
 
             # Save the book to the database
-            new_book = Book(
+            book = Book(
                 isbn=request.form.get("isbn", "").strip(),
                 title=title,
                 authors=authors,
@@ -310,12 +316,38 @@ def add_book():
                 lccn="", # not used
                 location=location_id,
             )
-            db.session.add(new_book)
+            db.session.add(book)
             db.session.commit()
-            return redirect(url_for("detail", id=new_book.id))
+
+            # Store all book details in JSON format
+            location = Location.query.get(book.location)
+            location_label = f"{location.label_name}, {location.full_name}" if location else "Unknown"
+            book_data = {
+                "isbn": book.isbn,
+                "title": book.title,
+                "authors": book.authors,
+                "publish_date": book.publish_date,
+                "subjects": book.subjects,
+                "pages": book.number_of_pages,
+                "openlibrary_preview_url": book.openlibrary_preview_url,
+                "thumbnail": book.openlibrary_medcover_url,
+                "location_id": book.location,
+                "location_label": location_label,
+            }
+            transaction = TransactionLog(
+                action="ADD",
+                book_id=book.id,
+                book_title=f"{book.authors} - {book.title}",
+                details=json.dumps(book_data)
+            )
+            db.session.add(transaction)
+            db.session.commit()
+
+            return redirect(url_for("detail", id=book.id))
 
     # locations = LibraryLocation.query.all()  # Fetch available library locations
     return render_template("add_book.html", location_form=location_form)
+
 
 @app.route("/edit_book/<int:id>", methods=["GET", "POST"])
 def edit_book(id):
@@ -331,8 +363,8 @@ def edit_book(id):
     location_choices = [(l.id, f"{l.label_name}, {l.full_name}") for l in locations]
 
     if request.method == "POST":
+        # Fetch book details by ISBN and overwrite fields only if they have meaningful data
         if "search_isbn" in request.form:
-            # Fetch book details by ISBN and overwrite fields only if they have meaningful data
             isbn = str(request.form.get("isbn", "")).strip()
             if not check_isbn(isbn):
                 flash("Invalid ISBN. Please enter a valid 10 or 13-digit ISBN.", "danger")
@@ -355,12 +387,9 @@ def edit_book(id):
             if book_data.get("number_of_pages"): book.number_of_pages = book_data["number_of_pages"]
 
             flash("Book details updated from ISBN search!", "info")
-            return render_template(
-                "edit_book.html",
-                book=book,
-                locations=location_choices
-            )
+            return render_template("edit_book.html", book=book, locations=location_choices)
 
+        # update the book details
         elif "submit_book" in request.form:
             # Ensure ISBN is unique (excluding the current book)
             isbn = str(request.form.get("isbn", "")).strip()
@@ -368,6 +397,9 @@ def edit_book(id):
             if existing_book:
                 flash("A book with this ISBN already exists.", "danger")
                 return redirect(url_for("detail", id=existing_book.id))
+
+            # Save previous state for logging
+            old_data = book.__dict__.copy()
 
             # Update book details from form
             book.isbn = isbn
@@ -381,18 +413,42 @@ def edit_book(id):
 
             # Handle location selection
             location_id = request.form.get("location")
-            book.location = int(location_id) if location_id and location_id != "-1" else None
 
-            # Commit the changes
+            # for logging location changes
+            old_location_id = book.location
+            old_location = Location.query.get(old_location_id)
+            old_location_label = f"{old_location.label_name}, {old_location.full_name}" if old_location else "Unknown"
+            new_location = Location.query.get(location_id)
+            new_location_label = f"{new_location.label_name}, {new_location.full_name}" if new_location else "Unknown"
+
+            book.location = int(location_id) if location_id and location_id != "-1" else None
             db.session.commit()
+
+            # Log the transaction
+            changes = []
+            for key in ["isbn", "title", "authors", "publish_date", "subjects"]:
+                old_value = old_data.get(key, "")
+                new_value = getattr(book, key, "")
+                if old_value != new_value:
+                    changes.append(f"{key}: '{old_value}' → '{new_value}'")
+
+            # Log location change
+            if old_location_id != location_id:
+                changes.append(f"Location: '{old_location_label}' (ID: {old_location_id}) → '{new_location_label}' (ID: {location_id})")
+
+            transaction = TransactionLog(
+                action="EDIT",
+                book_id=book.id,
+                book_title=f"{book.authors} - {book.title}",
+                details="; ".join(changes) if changes else "No changes detected."
+            )
+            db.session.add(transaction)
+            db.session.commit()
+
             flash("Book details updated successfully!", "success")
             return redirect(url_for("detail", id=book.id))
 
-    return render_template(
-        "edit_book.html",
-        book=book,
-        locations=location_choices
-    )
+    return render_template("edit_book.html", book=book, locations=location_choices)
 
 
 @app.route("/delete_book/<int:id>", methods=["POST"])
@@ -404,11 +460,91 @@ def delete_book(id):
         flash(f"Book with ID {id} does not exist.", "danger")
         return redirect(url_for("index"))
 
+    # Log full book details before deleting
+    # Retrieve location details
+    location = Location.query.get(book.location)
+    location_label = f"{location.label_name}, {location.full_name}" if location else "Unknown"
+    # Store all book details in JSON format
+    book_data = {
+        "isbn": book.isbn,
+        "title": book.title,
+        "authors": book.authors,
+        "publish_date": book.publish_date,
+        "subjects": book.subjects,
+        "pages": book.number_of_pages,
+        "openlibrary_preview_url": book.openlibrary_preview_url,
+        "thumbnail": book.openlibrary_medcover_url,
+        "location_id": book.location,
+        "location_label": location_label,
+    }
+    transaction = TransactionLog(
+        action="DELETE",
+        book_id=book.id,
+        book_title=f"{book.authors} - {book.title}",
+        details=json.dumps(book_data)  # Convert to JSON string
+    )
+    db.session.add(transaction)
+    db.session.commit()
+
     db.session.delete(book)
     db.session.commit()
 
     flash("Book deleted successfully!", "success")
     return redirect(url_for("index", page=1))
+
+
+@app.route("/restore_book/<int:log_id>", methods=["POST"])
+def restore_book(log_id):
+    log_entry = TransactionLog.query.get(log_id)
+    if not log_entry or log_entry.action != "DELETE":
+        flash("Invalid log entry for restoration.", "danger")
+        return redirect(url_for("view_logs"))
+
+    # Load JSON data
+    try:
+        book_data = json.loads(log_entry.details)
+    except json.JSONDecodeError:
+        flash("Error decoding book data from log.", "danger")
+        return redirect(url_for("view_logs"))
+
+    # Restore the book
+    book = Book(
+        isbn=book_data.get("isbn", ""),
+        title=book_data.get("title", ""),
+        authors=book_data.get("authors", ""),
+        publish_date=book_data.get("publish_date", ""),
+        subjects=book_data.get("subjects", ""),
+        number_of_pages=book_data.get("pages", ""),
+        openlibrary_preview_url=book_data.get("openlibrary_preview_url", ""),
+        openlibrary_medcover_url=book_data.get("thumbnail", ""),
+        location=book_data.get("location_id"),
+        dewey_decimal_class="",  # Not used
+        lccn="", # not used
+        olid="", # not used
+    )
+
+    db.session.add(book)
+    db.session.commit()
+
+    transaction = TransactionLog(
+        action="RESTORE",
+        book_id=book.id,
+        book_title=f"{book.authors} - {book.title}",
+        details=f"Restored from a DELETE ({log_entry.timestamp})"
+        )
+    db.session.add(transaction)
+    db.session.commit()
+
+    flash(f"Book '{book.title}' has been restored!", "success")
+    # return redirect(url_for("detail", id=book.id))
+    return redirect(url_for("view_logs"))
+
+
+@app.route("/logs")
+def view_logs():
+    logs = TransactionLog.query.order_by(TransactionLog.timestamp.desc()).all()
+    return render_template("logs.html", logs=logs)
+
 
 @app.route("/new_location", methods=["GET", "POST"])
 def new_location(new_location=None, new_location_submit_secret=None):
