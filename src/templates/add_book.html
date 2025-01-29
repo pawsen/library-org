@@ -22,10 +22,10 @@
 
 <div class="row">
   <div class="col-xs-8 col-xs-offset-2">
-    <form method="POST" action="{{ url_for('add_book') }}">
+    <form method="POST" action="{{ url_for('add_book') }}" enctype="multipart/form-data">
       <div class="form-group">
         <label for="isbn">ISBN</label>
-        <input type="text" class="form-control" id="isbn" name="isbn" value="{{ isbn if isbn else '' }}" required>
+        <input type="text" class="form-control" id="isbn" name="isbn" value="{{ isbn if isbn else '' }}">
         <button type="submit" name="search_isbn" class="btn btn-primary">Search ISBN</button>
       </div>
 
@@ -73,7 +73,13 @@
             <option value="{{ value }}" {% if value==location_form.location.data %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
-    </div>
+      </div>
+
+      <!-- Document Upload -->
+      <div class="form-group">
+        <label for="document">Upload Document (PDF, max 10MB)</label>
+        <input type="file" class="form-control" id="document" name="document" accept="application/pdf">
+      </div>
 
       <button type="submit" name="submit_book" class="btn btn-success">Submit Book</button>
 

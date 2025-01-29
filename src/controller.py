@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, session
+from flask import Flask, render_template, redirect, url_for, flash, request, session, send_from_directory
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql.expression import or_, asc, desc
@@ -6,6 +6,9 @@ from flask_wtf import FlaskForm
 from wtforms import SelectField
 import requests, json, configparser, os, re, sys, pprint
 from pathlib import Path
+# for file upload
+from werkzeug.utils import secure_filename
+from werkzeug.exceptions import RequestEntityTooLarge
 
 # Configuration setup
 p = Path(__file__).absolute()
@@ -31,6 +34,17 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 PAGINATE_BY_HOWMANY = 50
 
+# Configuration for file uploads
+UPLOAD_FOLDER = os.path.join(PROJECT_ROOT, 'uploads')  # Folder to store uploaded files
+ALLOWED_EXTENSIONS = {'pdf'}  # Only allow PDF files
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
+
+# Ensure the upload folder exists
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE
 
 class Location(db.Model):
     """Locations have a shortname and a pkey ID.
@@ -90,6 +104,7 @@ class Book(db.Model):
     location = db.Column(
         db.Integer, db.ForeignKey("location.id"), default=None, nullable=True
     )
+    document_path = db.Column(db.String(500), unique=False)
 
     def __init__(self, **kwargs):
         super(Book, self).__init__(**kwargs)
@@ -105,6 +120,10 @@ class LocationForm(FlaskForm):
 
 
 # Helper functions
+def allowed_file(filename):
+    """Check if the file has an allowed extension."""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 def fetch_book_details(isbn):
     # fetch book details using an ISBN
     google_books_url = f'https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}'
@@ -200,6 +219,11 @@ def login_required():
     return None
 
 
+@app.errorhandler(RequestEntityTooLarge)
+def handle_large_file(error):
+    flash(f"File size exceeds the maximum limit of {MAX_UPLOAD_SIZE / 1024 / 1024} MB.", "danger")
+    return redirect(url_for("add_book"))
+
 # routes
 @app.route("/index")
 @app.route("/")
@@ -217,7 +241,6 @@ def add_book():
     locations = Location.query.order_by("label_name").all()
     location_choices = [(l.id, f"{l.label_name}, {l.full_name}") for l in locations]  # Populate choices dynamically
     location_form = LocationForm()
-
     # Pre-fill location choices
     location_form.location.choices = location_choices + [(-1, u"-- Add the correct location --")]
 
@@ -247,11 +270,12 @@ def add_book():
             )
 
         elif "submit_book" in request.form:  # Handle form submission
+
            # Check if the book already exists by ISBN
             isbn = request.form.get("isbn")
             existing_book = Book.query.filter_by(isbn=isbn).first()
-            if existing_book:
-                flash("This book already exists in the system. Redirecting to its details page.", "info")
+            if existing_book and isbn != "":
+                flash(f"This book with ISBN {isbn} already exists in the system. Redirecting to its details page.", "info")
                 return redirect(url_for("detail", id=existing_book.id))  # Redirect to the existing book's detail page
 
             title=request.form.get("title", "").strip()
@@ -262,6 +286,29 @@ def add_book():
             if not title or not authors or not location_id:
                 flash("Title, Authors, and Location are required fields!", "danger")
                 return redirect(url_for('add_book'))
+
+            # Handle file upload
+            document_path = None
+            if 'document' in request.files:
+                file = request.files['document']
+                print(file)
+                if file and allowed_file(file.filename):
+                    # Even though Flask will reject files larger than
+                    # MAX_UPLOAD_SIZE, it's a good practice to validate the file
+                    # size
+                    file.seek(0, os.SEEK_END)  # Move to the end of the file
+                    file_size = file.tell()  # Get the file size in bytes
+                    file.seek(0)  # Reset the file pointer to the beginning
+
+                    if file_size > MAX_UPLOAD_SIZE:
+                        flash("add_book: File size exceeds the maximum limit of MB.", "danger")
+                        return redirect(url_for('add_book'))
+
+                    # sanitizes the filename to make it safe for storage.
+                    filename = secure_filename(file.filename)
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(file_path)
+                    document_path = file_path
 
             # Save the book to the database
             book = Book(
@@ -277,6 +324,7 @@ def add_book():
                 dewey_decimal_class="",  # Not used
                 lccn="", # not used
                 location=location_id,
+                document_path=document_path,
             )
             db.session.add(book)
             db.session.commit()
@@ -295,6 +343,7 @@ def add_book():
                 "thumbnail": book.openlibrary_medcover_url,
                 "location_id": book.location,
                 "location_label": location_label,
+                "document_path": book.document_path,
             }
             transaction = TransactionLog(
                 action="ADD",
@@ -431,6 +480,13 @@ def delete_book(id):
         flash(f"Book with ID {id} does not exist.", "danger")
         return redirect(url_for("index", page=1))
 
+    # Delete the associated file (if it exists)
+    if book.document_path and os.path.exists(book.document_path):
+        try:
+            os.remove(book.document_path)  # Delete the file
+        except Exception as e:
+            flash(f"Error deleting the document file: {str(e)}", "danger")
+
     # Log full book details before deleting
     # Retrieve location details
     location = Location.query.get(book.location)
@@ -447,6 +503,7 @@ def delete_book(id):
         "thumbnail": book.openlibrary_medcover_url,
         "location_id": book.location,
         "location_label": location_label,
+        "document_path": book.document_path,
     }
     transaction = TransactionLog(
         action="DELETE",
@@ -514,6 +571,15 @@ def restore_book(log_id):
     # return redirect(url_for("detail", id=book.id))
     return redirect(url_for("view_logs"))
 
+
+@app.route("/download_document/<int:id>")
+def download_document(id):
+    book = Book.query.get(id)
+    if not book or not book.document_path:
+        flash("Document not found.", "danger")
+        return redirect(url_for("index", page=1))
+
+    return send_from_directory(app.config['UPLOAD_FOLDER'], os.path.basename(book.document_path))
 
 @app.route("/logs")
 def view_logs():

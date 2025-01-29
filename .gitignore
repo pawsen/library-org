@@ -2,10 +2,12 @@
 *.cfg
 *.swp
 *.pyc
-database/books.sqlite
 
 tmp/*
 venv/*
 
 /.venv/
 /.direnv/
+
+/src/database/*
+/src/uploads/*
