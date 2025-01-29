@@ -22,7 +22,7 @@
 
       <div class="col-xs-3">
         <a href="/explore"><button type="explore" class="btn btn-default btn-circle">Explore</button></a>
-        <a href="/new"><button type="new" class="btn btn-info btn-circle">New</button></a>
+        <a href="{{ url_for('add_book') }}"> <button type="new" class="btn btn-info btn-circle">Add Book</button></a>
       </div>
 
       {% if session['logged_in'] %}

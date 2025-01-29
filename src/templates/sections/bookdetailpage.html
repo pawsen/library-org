@@ -1,4 +1,5 @@
 <!-- Navigate previous/next book. No /real/ check that id actually exists -->
+{% if book.id %}
 <nav>
     <ul class="nav justify-content-center">
         <li>
@@ -9,6 +10,7 @@
         </li>
     </ul>
 </nav>
+{% endif %}
 
 <div class="row">
   <div class="col-xs-10 col-xs-offset-1">
@@ -63,7 +65,7 @@
         <p><span class="detail-view-content">OLID: </span>{{ book.olid }}</p>
 
 
-        {% if book.id %}
+        {% if (book.id) and (location_form is defined) %}
           <br>
           <br>
           <p class="text-underline"><u>Location:</u>

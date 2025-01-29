@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block inlinecss %}
+<style type="text/css">
+  .form-group {
+    margin-bottom: 15px;
+  }
+  .form-control {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+  }
+  .btn {
+    padding: 10px 20px;
+    margin-top: 10px;
+  }
+</style>
+{% endblock %}
+
+{% block main %}
+<h3 class="explanation-header">Add a New Book</h3>
+
+<div class="row">
+  <div class="col-xs-8 col-xs-offset-2">
+    <form method="POST" action="{{ url_for('add_book') }}">
+      <div class="form-group">
+        <label for="isbn">ISBN</label>
+        <input type="text" class="form-control" id="isbn" name="isbn" value="{{ isbn if isbn else '' }}" required>
+        <button type="submit" name="search_isbn" class="btn btn-primary">Search ISBN</button>
+      </div>
+
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" class="form-control" id="title" name="title" value="{{ title if title else '' }}">
+      </div>
+
+      <div class="form-group">
+        <label for="authors">Author(s)</label>
+        <input type="text" class="form-control" id="authors" name="authors" value="{{ authors if authors else '' }}">
+      </div>
+
+      <div class="form-group">
+        <label for="year">Year</label>
+        <input type="text" class="form-control" id="year" name="year" value="{{ year if year else '' }}">
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea class="form-control" id="description" name="description">{{ description if description else '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="thumbnail_url">Thumbnail URL</label>
+        <input type="url" class="form-control" id="thumbnail_url" name="thumbnail_url" value="{{ thumbnail_url if thumbnail_url else '' }}">
+      </div>
+
+      <div class="form-group">
+        <label for="subjects">Subjects</label>
+        <input type="text" class="form-control" id="subjects" name="subjects" value="{{ subjects if subjects else '' }}">
+      </div>
+
+      <div class="form-group">
+        <label for="number_of_pages">Number of Pages</label>
+        <input type="text" class="form-control" id="number_of_pages" name="number_of_pages" value="{{ number_of_pages if number_of_pages else '' }}">
+      </div>
+
+      <!-- Location Dropdown -->
+      <div class="form-group">
+        <label for="location">Location</label>
+        <select class="form-control" id="location" name="location">
+            <option value="">Select Location on the DBKK Shelf</option>
+            {% for value, label in location_form.location.choices %}
+            <option value="{{ value }}" {% if value==location_form.location.data %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+      <button type="submit" name="submit_book" class="btn btn-success">Submit Book</button>
+
+    </form>
+  </div>
+</div>
+
+
+{% if openlibrary_preview_url %}
+<div class="row">
+  <div class="col-xs-8 col-xs-offset-2">
+    <h4>Open Library Preview</h4>
+    <a href="{{ openlibrary_preview_url }}" target="_blank">Click to preview on Open Library</a>
+  </div>
+</div>
+{% endif %}
+
+{% if thumbnail_url %}
+<div class="row">
+  <div class="col-xs-8 col-xs-offset-2">
+    <h4>Book Thumbnail Preview</h4>
+    <img src="{{ thumbnail_url }}" alt="Book Thumbnail" style="max-width: 100%; height: auto;">
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

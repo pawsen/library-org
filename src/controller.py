@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, session
+from flask import Flask, render_template, redirect, url_for, flash, request, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql.expression import func
 from sqlalchemy import or_
@@ -191,93 +191,152 @@ def home():
     return redirect(url_for("index", page=1))
 
 
-@app.route("/submit", methods=("GET", "POST"))
-def submit():
-    """Submit the book found from new_book"""
-    if request.method == "GET":
-        return redirect(url_for("new_book"))
-    if request.method == "POST" and not session.get("logged_in", False):
-        return '<h1>You are not logged in.</h1>'
+# Function to fetch book details using an ISBN
+def fetch_book_details(isbn):
+    google_books_url = f'https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}'
+    open_library_url = f'https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&format=json&jscmd=data'
 
-    bookdata_list = session.get("bookdata", None)
-    session.pop("bookdata", None)
-    if bookdata_list:
-        bookdata_list = json.loads(bookdata_list)
-        # this bookdata_list obviously needs to be a dict,
-        # it wasn't originally clear if this code would
-        # still exist after its first use.
-        # this still may be true so I have not changed it yet.
-        # note: this should probably be abstracted for use by request_book.py and here.
-        bookdata = Book(*bookdata_list)
-    else:
-        return "no book!"
+    # Fetch data from Open Library
+    open_library_response = requests.get(open_library_url)
+    open_library_data = open_library_response.json() if open_library_response.status_code == 200 else {}
+    # pprint.pprint((open_library_data))
 
-    try:
-        db.session.add(bookdata)
-        db.session.commit()
-        session["newbookflash"] = True
-        return redirect(url_for("detail", id=bookdata.id))
+    book_details = {}
+    # Open Library data
+    if f'ISBN:{isbn}' in open_library_data:
+        open_library_info = open_library_data[f'ISBN:{isbn}']
 
-    except IntegrityError:
-        db.session.rollback()
-        return "book already exists. how did you get here?"
-
-
-@app.route("/new", methods=("GET", "POST"))
-# def new_book(olid=None):
-def new_book(isbn=None):
-    """Allow a new book to be added to the database."""
-    book_form = BookForm(request.form)
-
-    if request.method == "POST" and not session.get("logged_in", False):
-        return '<h1>You are not logged in.</h1>'
-    elif request.method == "POST":
-        isbn = book_form.isbn.data
-        book_exists = Book.query.filter_by(isbn=isbn).first()
-        # olid = book_form.olid.data
-        # book_exists = Book.query.filter_by(olid=olid).first()
-
-        if book_exists:
-            # return render_template("new_book.html", book_form=book_form, secret_form=secret_form, olid=olid, book=book_exists, book_exists=True)
-            return render_template(
-                "new_book.html",
-                book_form=book_form,
-                secret_form=secret_form,
-                isbn=isbn,
-                book=book_exists,
-                book_exists=True,
-            )
+        # Extract title and subtitle from Open Library (if available)
+        open_library_title = open_library_info.get('title', '')
+        open_library_subtitle = open_library_info.get('subtitle', '')
+        # Combine title and subtitle (if subtitle exists)
+        if open_library_subtitle:
+            book_details['title'] = f"{open_library_title} - {open_library_subtitle}"
         else:
-            # make a book object, render it, and if the user submits, then ingest it.
-            # SO -  we need to get the ingestion script repackaged so a single run of the ingester
-            #       can be imported as a function.
-            # URL = "https://openlibrary.org/api/books?bibkeys=OLID:{olid}&jscmd=data&format=json"
-            # r = requests.get(URL.format(olid=olid))
-            URL = "https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&jscmd=data&format=json"
-            r = requests.get(URL.format(isbn=isbn))
-            if r.status_code == 200:
-                if r.json():
-                    # bookdata_list = reorganize_openlibrary_data("OLID:"+olid, r.json()["OLID:"+olid])
-                    bookdata_list = reorganize_openlibrary_data(
-                        "ISBN:" + isbn, r.json()["ISBN:" + isbn]
-                    )
-                    session["bookdata"] = json.dumps(bookdata_list)
+            book_details['title'] = open_library_title
 
-                    # this bookdata_list needs to be a dict,
-                    # note: this should probably be abstracted for use by request_book.py and here.
-                    # KEY POINT: this is only done here too because we need to send it to the template.
-                    bookdata = Book(*bookdata_list)
+        book_details['authors'] = [author['name'] for author in open_library_info.get('authors', [])]
+        book_details['publishedDate'] = open_library_info.get('publish_date', '')
+        book_details['description'] = open_library_info.get('description', '')
+        # Extract and store only the names of the subjects
+        book_details['subjects'] = [subject['name'] for subject in open_library_info.get('subjects', [])]
+        book_details['number_of_pages'] = open_library_info.get('number_of_pages', '')
+        book_details['preview_link'] = f"https://openlibrary.org{open_library_info.get('key', '')}"  # Link to borrow or more info
+        book_details['thumbnail'] = open_library_info.get('cover', {}).get('medium', '')
 
-                    return render_template(
-                        "new_book.html",
-                        book_form=book_form,
-                        isbn=isbn,
-                        book=bookdata,
-                        book_exists=False,
-                    )
+    # If no Open Library data, try Google Books
+    if not book_details.get('title'):
+        google_books_response = requests.get(google_books_url)
+        google_books_data = google_books_response.json() if google_books_response.status_code == 200 else {}
+        # pprint.pprint((google_books_data))
+
+        if 'items' in google_books_data:
+            google_book = google_books_data['items'][0]
+            google_info = google_book.get('volumeInfo', {})
+
+            google_title = google_info.get('title', '')
+            google_subtitle = google_info.get('subtitle', '')
+            # Combine title and subtitle (if subtitle exists)
+            if google_subtitle:
+                book_details['title'] = f"{google_title} - {google_subtitle}"
+            else:
+                book_details['title'] = google_title
+
+            book_details['authors'] = google_info.get('authors', [])
+            book_details['publishedDate'] = google_info.get('publishedDate', '')
+            book_details['description'] = google_info.get('description', '')
+            book_details['thumbnail'] = google_info.get('imageLinks', {}).get('thumbnail', '')
+            book_details['subjetcs'] = google_info.get('categories', [])
+            book_details['number_of_pages'] = google_info.get('pageCount', '')
+            book_details['preview_link'] = google_info.get('previewLink', '')
+
+    # Return the combined details
+    return book_details
+
+@app.route("/add_book", methods=["GET", "POST"])
+def add_book():
+    """Add a new book to the system by entering ISBN or manually filling fields."""
+
+    # Fetch locations from the database (or use predefined list if necessary)
+    locations = Location.query.order_by("label_name").all()
+    location_choices = [(l.id, f"{l.label_name}, {l.full_name}") for l in locations]  # Populate choices dynamically
+    location_form = LocationForm()
+
+    # Pre-fill location choices
+    location_form.location.choices = location_choices + [(-1, u"-- Add the correct location --")]
+
+    if request.method == "POST":
+        if "search_isbn" in request.form:  # Handle ISBN search
+            isbn = request.form.get("isbn")
+            if not check_isbn(isbn):
+                return "Invalid ISBN. Please enter a valid 10 or 13-digit ISBN."
+
+            # Fetch book details from both Google Books and OpenLibrary
+            book_data = fetch_book_details(isbn)
+            pprint.pprint(book_data)
+
+            if not book_data:
+                return "Book not found. Please check the ISBN or enter details manually."
+
+            return render_template(
+                "add_book.html",
+                isbn=isbn,
+                title=book_data.get("title", ""),
+                authors=", ".join(book_data.get("authors", [])),
+                year=book_data.get("publishedDate", ""),
+                description=book_data.get("description", ""),
+                thumbnail_url=book_data.get("thumbnail", ""),
+                subjects=", ".join(book_data.get("subjects", [])),
+                number_of_pages=book_data.get("number_of_pages", ""),
+                openlibrary_preview_url=book_data.get("preview_link", ""),
+                location_form=location_form,  # Pass location form with choices
+            )
+
+        elif "submit_book" in request.form:  # Handle form submission
+           # Check if the book already exists by ISBN
+            isbn = request.form.get("isbn")
+            existing_book = Book.query.filter_by(isbn=isbn).first()
+            if existing_book:
+                flash("This book already exists in the system. Redirecting to its details page.", "info")
+                return redirect(url_for("detail", id=existing_book.id))  # Redirect to the existing book's detail page
+
+            # Handle location selection
+            location_id = request.form.get("location")
+            location_id = int(location_id) if location_id and location_id != "-1" else None
+            title=request.form.get("title", "").strip()
+            authors=request.form.get("authors", "").strip()
+            if not title or not authors or not location_id:
+                flash("Title, Authors, and Location are required fields!", "danger")
+                return redirect(url_for('add_book'))
+
+            # Save the book to the database
+            new_book = Book(
+                isbn=request.form.get("isbn", "").strip(),
+                title=title,
+                authors=authors,
+                publish_date=request.form.get("year", "").strip(),
+                subjects=request.form.get("subjects", "").strip(),
+                openlibrary_medcover_url=request.form.get("thumbnail_url", "").strip(),
+                openlibrary_preview_url=request.form.get("preview_link", "").strip(),
+                olid=request.form.get("openlibrary_link", "").strip(),
+                number_of_pages=request.form.get("number_of_pages", "").strip(),
+                dewey_decimal_class="",  # Not used
+                lccn="", # not used
+                location=location_id,
+            )
+            db.session.add(new_book)
+            db.session.commit()
+            return redirect(url_for("detail", id=new_book.id))
+
+    # locations = LibraryLocation.query.all()  # Fetch available library locations
+    return render_template("add_book.html", location_form=location_form)
+
+
+
+            return render_template(
+            )
 
     return render_template(
-        "new_book.html", book_form=book_form, isbn=isbn
     )
 
 
@@ -433,6 +492,31 @@ def login():
 def logout():
     session['logged_in'] = False
     return redirect('/index')
+
+def check_isbn(isbn:str|None) -> bool:
+    """Check we have a ISBN
+
+    https://stackoverflow.com/a/4047709
+    https://rosettacode.org/wiki/ISBN13_check_digit#Python
+    """
+
+    if isbn is None:
+        return False
+
+    isbn = isbn.replace("-", "").replace(" ", "").upper();
+    if len(isbn) == 10:
+        match = re.search(r'^(\d{9})(\d|X)$', isbn)
+        if not match:
+            return False
+
+        digits = match.group(1)
+        check_digit = 10 if match.group(2) == 'X' else int(match.group(2))
+
+        result = sum((i + 1) * int(digit) for i, digit in enumerate(digits))
+        return (result % 11) == check_digit
+    else:
+        result = (sum(int(ch) for ch in isbn[::2]) + sum(int(ch) * 3 for ch in isbn[1::2]))
+        return result % 10 == 0
 
 
 if __name__ == "__main__":
