@@ -250,6 +250,9 @@ def fetch_book_details(isbn):
 @app.route("/add_book", methods=["GET", "POST"])
 def add_book():
     """Add a new book to the system by entering ISBN or manually filling fields."""
+    auth_redirect = login_required()
+    if auth_redirect:
+        return auth_redirect
 
     # Fetch locations from the database (or use predefined list if necessary)
     locations = Location.query.order_by("label_name").all()
@@ -352,11 +355,15 @@ def add_book():
 @app.route("/edit_book/<int:id>", methods=["GET", "POST"])
 def edit_book(id):
     """Edit an existing book's details with an ISBN search option."""
-    book = Book.query.get(id)
+   # Check if user is logged in
+    auth_redirect = login_required()
+    if auth_redirect:
+        return auth_redirect  # Redirect user if not logged in
 
+    book = Book.query.get(id)
     if book is None:
         flash(f"Book with ID {id} does not exist.", "danger")
-        return redirect(url_for("index"))
+        return redirect(url_for("index", page=1))
 
     # Fetch available locations
     locations = Location.query.order_by("label_name").all()
@@ -454,11 +461,14 @@ def edit_book(id):
 @app.route("/delete_book/<int:id>", methods=["POST"])
 def delete_book(id):
     """Delete a book from the database."""
-    book = Book.query.get(id)
+    auth_redirect = login_required()
+    if auth_redirect:
+        return auth_redirect
 
+    book = Book.query.get(id)
     if book is None:
         flash(f"Book with ID {id} does not exist.", "danger")
-        return redirect(url_for("index"))
+        return redirect(url_for("index", page=1))
 
     # Log full book details before deleting
     # Retrieve location details
@@ -495,6 +505,10 @@ def delete_book(id):
 
 @app.route("/restore_book/<int:log_id>", methods=["POST"])
 def restore_book(log_id):
+    auth_redirect = login_required()
+    if auth_redirect:
+        return auth_redirect
+
     log_entry = TransactionLog.query.get(log_id)
     if not log_entry or log_entry.action != "DELETE":
         flash("Invalid log entry for restoration.", "danger")
@@ -660,25 +674,28 @@ def index(page=1):
     return render_template("index.html", books=books, s=s, sort_by=sort_by, sort_order=sort_order, per_page=per_page)
 
 
-@app.route('/login', methods = ['POST', 'GET'])
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    if(request.method == 'POST'):
-        username = request.form.get('username')
-        password = request.form.get('password')
-        if username == USER['username'] and password == USER['password']:
-            session['logged_in'] = True
-            # session['user'] = username
-            return redirect('/index')
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
 
-        return "<h1>Wrong username or password</h1>"    #if the username or password does not matches
+        if username == USER['username'] and password == USER['password']:
+            session["logged_in"] = True
+            flash("Login successful!", "success")
+            return redirect(url_for("index", page=1))
+        else:
+            flash("Invalid username or password.", "danger")
 
     return render_template("login.html")
 
 
 @app.route("/logout")
 def logout():
-    session['logged_in'] = False
-    return redirect('/index')
+    session.pop("logged_in", None)
+    flash("You have been logged out.", "info")
+    return redirect(url_for("index", page=1))
+
 
 def check_isbn(isbn:str|None) -> bool:
     """Check we have a ISBN
@@ -705,6 +722,12 @@ def check_isbn(isbn:str|None) -> bool:
         result = (sum(int(ch) for ch in isbn[::2]) + sum(int(ch) * 3 for ch in isbn[1::2]))
         return result % 10 == 0
 
+def login_required():
+    """Redirects to login page if user is not logged in."""
+    if not session.get("logged_in"):
+        flash("You must be logged in to perform this action.", "danger")
+        return redirect(url_for("login"))
+    return None
 
 if __name__ == "__main__":
     # flask can execute arbitrary python if you do this.

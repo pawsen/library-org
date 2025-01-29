@@ -21,17 +21,20 @@
       </div>
 
       <div class="col-xs-3">
-        <a href="/explore"><button type="explore" class="btn btn-default btn-circle">Explore</button></a>
+        <a href="{{ url_for('explore') }}"><button type="explore" class="btn btn-default btn-circle">Explore</button></a>
         <a href="{{ url_for('add_book') }}"> <button type="new" class="btn btn-info btn-circle">Add Book</button></a>
       </div>
 
       {% if session['logged_in'] %}
           <li class="nav-item">
-              <a class="nav-link js-scroll-trigger" href="/logout">Logout &nbsp;</a>
+              <a class="nav-link js-scroll-trigger" href="{{ url_for('view_logs') }}">View Logs &nbsp;</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link js-scroll-trigger" href="{{ url_for('logout') }}">Logout &nbsp;</a>
           </li>
       {% else %}
           <li class="nav-item">
-              <a class="nav-link js-scroll-trigger" href="/login">Login &nbsp;</a>
+            <a class="nav-link js-scroll-trigger" href="{{ url_for('login') }}">Login &nbsp;</a>
           </li>
       {% endif %}
 
