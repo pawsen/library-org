@@ -379,6 +379,7 @@ def edit_book(id):
 
             # Handle location selection
             location_id = request.form.get("location")
+            location_id = int(location_id) if location_id and location_id != "-1" else None
 
             # for logging location changes
             old_location_id = book.location
@@ -387,12 +388,13 @@ def edit_book(id):
             new_location = Location.query.get(location_id)
             new_location_label = f"{new_location.label_name}, {new_location.full_name}" if new_location else "Unknown"
 
-            book.location = int(location_id) if location_id and location_id != "-1" else None
+            book.location = location_id
             db.session.commit()
 
             # Log the transaction
             changes = []
-            for key in ["isbn", "title", "authors", "publish_date", "subjects"]:
+            for key in ["isbn", "title", "authors", "publish_date", "subjects", "number_of_pages",
+                        "openlibrary_medcover_url", "openlibrary_preview_url"]:
                 old_value = old_data.get(key, "")
                 new_value = getattr(book, key, "")
                 if old_value != new_value:
