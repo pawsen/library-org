@@ -68,8 +68,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 # default pagination
-PAGINATE_BY_HOWMANY = 20
-
+PAGINATE_BY_HOWMANY = 50
 
 
 class Location(db.Model):
