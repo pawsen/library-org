@@ -5,17 +5,127 @@
 .no-openlibrary-preview {
   font-size: 0.9em;
 }
+
+.detail-view-container {
+  margin-top: 20px;
+}
+
+.detail-view-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px; /* Optional: Add rounded corners to the image */
+  transition: transform 0.3s ease; /* Smooth scaling effect */
+}
+
+.detail-view-fields {
+  padding: 20px;
+}
+
+.detail-view-title {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.detail-view-content {
+  font-size: 16px;
+  color: #555; /* Slightly darker text for better readability */
+}
+
+@media (max-width: 767px) {
+  .detail-view-image {
+    text-align: center; /* Center the image on smaller screens */
+    margin-bottom: 20px; /* Add space between image and text */
+  }
+
+  .detail-view-image img {
+    max-width: 80%; /* Reduce image size on smaller screens */
+  }
+
+  .detail-view-title {
+    font-size: 20px; /* Smaller title for mobile */
+  }
+
+  .detail-view-content {
+    font-size: 14px; /* Smaller text for mobile */
+  }
+}
 </style>
 {% endblock %}
 
 {% block main %}
 
-{% if newbookflash %}
-  <div class="alert alert-success">
-    <strong>Success! Book added.</strong>  It can now go on the shelf.
-  </div>
+<!-- Navigate previous/next book. No /real/ check that id actually exists -->
+{% if book.id %}
+<nav>
+    <ul class="nav justify-content-center">
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('detail', id=book.id-1) }}">Prev</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('detail', id=book.id+1) }}">Next</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('edit_book', id=book.id) }}">Edit</a>
+        </li>
+    </ul>
+</nav>
 {% endif %}
 
-{% include "sections/bookdetailpage.html" %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-xs-12 col-md-10 col-md-offset-1">
+
+      <div class="row detail-view-container">
+        <!-- Book Image -->
+        <div class="col-xs-12 col-md-4 detail-view-image">
+          {% if book.openlibrary_medcover_url %}
+            <img src="{{ book.openlibrary_medcover_url }}" alt="{{ book.title }} Cover" class="img-fluid" loading="lazy">
+          {% else %}
+            <img src="/static/dist/images/lincoln-inaug-bible.jpg" alt="Default Book Cover" class="img-fluid">
+          {% endif %}
+        </div>
+
+        <!-- Book Details -->
+        <div class="col-xs-12 col-md-8 detail-view-fields">
+          <p><span class="detail-view-title">{{ book.title }}</span></p>
+          <p><span class="detail-view-content">Author(s): </span>{{ book.authors }}</p>
+          <p><span class="detail-view-content">Published: </span>{{ book.publish_date }}</p>
+
+          {% if book.description %}
+            <div class="mt-3">
+              <h5>Description:</h5>
+              <p>{{ book.description }}</p>
+            </div>
+          {% endif %}
+
+          <br>
+          <p><span class="detail-view-content">Subjects: </span>{{ book.subjects }}</p>
+          <p><span class="detail-view-content">Pages: </span>{{ book.number_of_pages }}</p>
+
+          <p><span class="detail-view-content"></span>
+          {% if book.isbn %}
+            <a href="https://www.amazon.com/gp/search?index=books&field-isbn={{ book.isbn }}" target="_blank"> ISBN: {{ book.isbn }}</a>
+          {% endif %}
+          <br>
+          <a href="https://google.com/search?q={{ book.title }}+{{ book.authors }}" target="_blank">Google Search</a>
+
+          {% if book.openlibrary_preview_url %}
+          <p><span class="detail-view-content"></span>
+            <a href="{{ book.openlibrary_preview_url }}" target="_blank">Online Preview</a>
+          {% endif %}
+
+          {% if location_display %}
+          <br>
+          <p class="text-underline"><u>Location:</u></p>
+          <p class="detail-view-content">{{ location_display.label_name }}, {{ location_display.full_name }}</p>
+          {% else %}
+          <p><span class="detail-view-content">Location: </span>Not specified</p>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 {% endblock %}

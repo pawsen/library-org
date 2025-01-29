@@ -523,12 +523,10 @@ def view_logs():
 def detail(id=1):
     """Show an individual work"""
 
-    newbookflash = session.get("newbookflash", False)
-    session.pop("newbookflash", None)
     book = Book.query.get(id)
-
     if book is None:
-        return f"<h1>book id {id} does not exist</h1>"
+        flash(f"Book with ID {id} does not exist.", "danger")
+        return redirect(url_for("index", page=1))
 
     # Fetch available locations
     locations = Location.query.order_by("label_name").all()
@@ -539,7 +537,7 @@ def detail(id=1):
         location_display = next((l for l in locations if l.id == book.location), None)
 
     return render_template(
-        "detail.html", book=book, newbookflash=newbookflash, location_display=location_display
+        "detail.html", book=book, location_display=location_display
     )
 
 

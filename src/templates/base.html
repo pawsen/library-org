@@ -9,7 +9,14 @@
         {% endblock %}
 
         {% block head %}
-        {% include 'sections/head.html' %}
+            <meta charset="utf-8">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+            <meta name="description" content="">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+            <link rel="shortcut icon" href="/static/favicon.ico">
+            <link rel="stylesheet" href="/static/dist/main.css">
+            <meta charset="utf-8">
         {% endblock %}
 
     </head>
@@ -21,6 +28,7 @@
         {% include 'sections/header.html' %}
         {% endblock %}
 
+        <!-- Display Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         <div class="alert-container">
