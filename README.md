@@ -5,6 +5,7 @@
 Missing features
 - manual `create a new book` page. The current way to create a new entry, is to `submit-by-isbn` which tries retrieve info about a book from google-books and openlibrary.org.
 - upload files(pdf) which then can be found from the `index` page,
+- get rating from goodreads and link
 
 ## docker
 Remember to copy `library.cfg_EXAMPLE` to `library.cfg` and change env variables as needed.
@@ -48,4 +49,23 @@ docker-compose up -d -f docker-compose.prod.yml
 ```
 
 go to [localhost:5000] (http://localhost:5000) in the browser
+
+
+## Amazon ec2 instance
+
+``` sh
+ssh ec2-user@ec2-ip-address-dns-name-here
+
+sudo yum install docker git
+sudo systemctl enable docker.service
+sudo systemctl start docker.service
+
+# add user to docker group
+sudo usermod -a -G docker ec2-user
+id ec2-user
+# logout
+
+git clone https://github.com/dbkk-dk/library-org.git
+
+```
 

@@ -3,8 +3,8 @@ configparser
 Flask
 Flask-SQLAlchemy
 Flask-WTF
+bootstrap-flask
 greenlet
-gunicorn
 idna
 importlib-metadata
 itsdangerous
@@ -16,3 +16,5 @@ typing_extensions
 urllib3
 Werkzeug
 WTForms
+wtforms_sqlalchemy
+flask_table
