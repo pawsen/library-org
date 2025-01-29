@@ -1,67 +1,34 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, session
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.sql.expression import func
-from sqlalchemy import or_, asc, desc
-
+from sqlalchemy.sql.expression import or_, asc, desc
 from flask_wtf import FlaskForm
-from wtforms import StringField, SelectField, validators
-
-import requests
-import json
-
-import configparser
-import os
+from wtforms import SelectField
+import requests, json, configparser, os, re, sys, pprint
 from pathlib import Path
-import re
-import sys
-import pprint
 
-try:
-    p = Path(__file__).absolute()
-except NameError:
-    # we're in repl
-    p = Path.cwd() / 'controller.py'
+# Configuration setup
+p = Path(__file__).absolute()
 CONFIG_FILE = "library.cfg"
 PROJECT_ROOT = p.parent
-# library.cfg is either in this dir(PROJECT_ROOT) or parent
-for fpath in [p.parents[1], PROJECT_ROOT]:
-    CONFIG_PATH = fpath / CONFIG_FILE
-    if CONFIG_PATH.is_file():
-        break
-else:
-    sys.exit(
-        f"{CONFIG_FILE} was not found in src or parent dir. Remember to create it from 'LIBRARY.cfg_EXAMPLE' ")
+CONFIG_PATH = next((fpath / CONFIG_FILE for fpath in [p.parents[1], PROJECT_ROOT] if (fpath / CONFIG_FILE).is_file()), None)
+if not CONFIG_PATH:
+    sys.exit(f"{CONFIG_FILE} not found in src or parent dir. Create it from 'LIBRARY.cfg_EXAMPLE'.")
 
 CONFIG = configparser.ConfigParser()
 CONFIG.read(CONFIG_PATH)
-
-# Configuration Secrets
 APP_SECRET_KEY = CONFIG.get("secrets", "APP_SECRET_KEY")
-USER = {"username": CONFIG.get("secrets", "USERNAME"),
-        "password": CONFIG.get("secrets", "PASSWORD")}
+USER = {"username": CONFIG.get("secrets", "USERNAME"), "password": CONFIG.get("secrets", "PASSWORD")}
 
+# Database setup
 db_name = "books.sqlite"
-DB_DIR = "database"
-sqlite_db = "sqlite:////" + os.path.join(PROJECT_ROOT, "database", db_name)
-
-# haven't used this in the templates, currently using exact path on a few files.
-# not even sure if this django style approach works with flask
-STATIC_DIR = "static"
-
+sqlite_db = f"sqlite:////{os.path.join(PROJECT_ROOT, 'database', db_name)}"
 app = Flask(__name__)
-
 app.secret_key = APP_SECRET_KEY
-# flask will reload itself on changes when debug is True
-# flask can execute arbitrary code if you set this True
 app.debug = True
-
-# sqlalchemy configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = sqlite_db
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
-# default pagination
 PAGINATE_BY_HOWMANY = 50
 
 
@@ -124,34 +91,8 @@ class Book(db.Model):
         db.Integer, db.ForeignKey("location.id"), default=None, nullable=True
     )
 
-    def __init__(
-        self,
-        isbn,
-        olid,
-        lccn,
-        title,
-        number_of_pages,
-        publish_date,
-        authors,
-        subjects,
-        openlibrary_medcover_url,
-        openlibrary_preview_url,
-        dewey_decimal_class,
-        location,
-    ):
-
-        self.isbn = isbn
-        self.olid = olid
-        self.lccn = lccn
-        self.title = title
-        self.authors = authors
-        self.publish_date = publish_date
-        self.number_of_pages = number_of_pages
-        self.subjects = subjects
-        self.openlibrary_medcover_url = openlibrary_medcover_url
-        self.openlibrary_preview_url = openlibrary_preview_url
-        self.dewey_decimal_class = dewey_decimal_class
-        self.location = location
+    def __init__(self, **kwargs):
+        super(Book, self).__init__(**kwargs)
 
     def __repr__(self):
         return "<Title: >".format(self.title)
@@ -163,16 +104,9 @@ class LocationForm(FlaskForm):
     location = SelectField(coerce=int)
 
 
-
-
-@app.route("/index")
-@app.route("/")
-def home():
-    return redirect(url_for("index", page=1))
-
-
-# Function to fetch book details using an ISBN
+# Helper functions
 def fetch_book_details(isbn):
+    # fetch book details using an ISBN
     google_books_url = f'https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}'
     open_library_url = f'https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&format=json&jscmd=data'
 
@@ -233,6 +167,44 @@ def fetch_book_details(isbn):
     # Return the combined details
     return book_details
 
+def check_isbn(isbn:str|None) -> bool:
+    """Check we have a ISBN
+
+    https://stackoverflow.com/a/4047709
+    https://rosettacode.org/wiki/ISBN13_check_digit#Python
+    """
+
+    if isbn is None:
+        return False
+
+    isbn = isbn.replace("-", "").replace(" ", "").upper();
+    if len(isbn) == 10:
+        match = re.search(r'^(\d{9})(\d|X)$', isbn)
+        if not match:
+            return False
+
+        digits = match.group(1)
+        check_digit = 10 if match.group(2) == 'X' else int(match.group(2))
+
+        result = sum((i + 1) * int(digit) for i, digit in enumerate(digits))
+        return (result % 11) == check_digit
+    else:
+        result = (sum(int(ch) for ch in isbn[::2]) + sum(int(ch) * 3 for ch in isbn[1::2]))
+        return result % 10 == 0
+
+def login_required():
+    """Redirects to login page if user is not logged in."""
+    if not session.get("logged_in"):
+        flash("You must be logged in to perform this action.", "danger")
+        return redirect(url_for("login"))
+    return None
+
+
+# routes
+@app.route("/index")
+@app.route("/")
+def home():
+    return redirect(url_for("index", page=1))
 
 @app.route("/add_book", methods=["GET", "POST"])
 def add_book():
@@ -635,39 +607,6 @@ def logout():
     flash("You have been logged out.", "info")
     return redirect(url_for("index", page=1))
 
-
-def check_isbn(isbn:str|None) -> bool:
-    """Check we have a ISBN
-
-    https://stackoverflow.com/a/4047709
-    https://rosettacode.org/wiki/ISBN13_check_digit#Python
-    """
-
-    if isbn is None:
-        return False
-
-    isbn = isbn.replace("-", "").replace(" ", "").upper();
-    if len(isbn) == 10:
-        match = re.search(r'^(\d{9})(\d|X)$', isbn)
-        if not match:
-            return False
-
-        digits = match.group(1)
-        check_digit = 10 if match.group(2) == 'X' else int(match.group(2))
-
-        result = sum((i + 1) * int(digit) for i, digit in enumerate(digits))
-        return (result % 11) == check_digit
-    else:
-        result = (sum(int(ch) for ch in isbn[::2]) + sum(int(ch) * 3 for ch in isbn[1::2]))
-        return result % 10 == 0
-
-
-def login_required():
-    """Redirects to login page if user is not logged in."""
-    if not session.get("logged_in"):
-        flash("You must be logged in to perform this action.", "danger")
-        return redirect(url_for("login"))
-    return None
 
 if __name__ == "__main__":
     # flask can execute arbitrary python if you do this.
