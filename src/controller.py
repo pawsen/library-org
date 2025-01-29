@@ -38,11 +38,6 @@ CONFIG.read(CONFIG_PATH)
 
 # Configuration Secrets
 APP_SECRET_KEY = CONFIG.get("secrets", "APP_SECRET_KEY")
-WTF_CSRF_SECRET_KEY = CONFIG.get("secrets", "WTF_CSRF_SECRET_KEY")
-NEW_ISBN_SUBMIT_SECRET = CONFIG.get("secrets", "NEW_ISBN_SUBMIT_SECRET")
-NEW_LOCATION_SUBMIT_SECRET = CONFIG.get("secrets", "NEW_LOCATION_SUBMIT_SECRET")
-RECAPTCHA_PUBLIC_KEY = CONFIG.get("secrets", "RECAPTCHA_PUBLIC_KEY")
-RECAPTCHA_PRIVATE_KEY = CONFIG.get("secrets", "RECAPTCHA_PRIVATE_KEY")
 USER = {"username": CONFIG.get("secrets", "USERNAME"),
         "password": CONFIG.get("secrets", "PASSWORD")}
 
@@ -57,7 +52,6 @@ STATIC_DIR = "static"
 app = Flask(__name__)
 
 app.secret_key = APP_SECRET_KEY
-
 # flask will reload itself on changes when debug is True
 # flask can execute arbitrary code if you set this True
 app.debug = True
@@ -169,12 +163,6 @@ class LocationForm(FlaskForm):
     location = SelectField(coerce=int)
 
 
-class NewLocationForm(FlaskForm):
-    # These constraints are temporary and can change to support the labelling system.
-    new_location = StringField("label_name", [validators.Length(min=5, max=10)])
-    location_entry_secret = StringField(
-        "location_entry_secret", validators=[validators.Length(min=1, max=200)]
-    )
 
 
 @app.route("/index")
@@ -559,42 +547,6 @@ def view_logs():
     return render_template("logs.html", logs=logs)
 
 
-@app.route("/new_location", methods=["GET", "POST"])
-def new_location(new_location=None, new_location_submit_secret=None):
-    """Register a new location"""
-
-    new_location_form = NewLocationForm(request.form)
-
-    if request.method == "GET":
-        pass
-
-    if request.method == "POST" and new_location_form.validate():
-
-        if new_location_form.location_entry_secret.data != NEW_LOCATION_SUBMIT_SECRET:
-            return "Bad Secret, try again. This page will be more friendly later :-)"
-
-        new_location = new_location_form.new_location.data
-        location_exists = Location.query.filter_by(label_name=new_location).first()
-
-        if location_exists:
-            return "This location already exists! Try again. Friendly response later."
-        else:
-            # label_name, full_name
-            newlocationdata = Location(new_location, "")
-            db.session.add(newlocationdata)
-            db.session.commit()
-            return "Congratulations, {} has been added to your locations. Make this response nice.".format(
-                new_location
-            )
-
-    return render_template(
-        "new_location.html",
-        new_location_form=new_location_form,
-        new_location=new_location,
-        new_location_submit_secret=new_location_submit_secret,
-    )
-
-
 @app.route("/detail/<int:id>", methods=["GET", "POST"])
 def detail(id=1):
     """Show an individual work"""
@@ -617,18 +569,6 @@ def detail(id=1):
     return render_template(
         "detail.html", book=book, newbookflash=newbookflash, location_display=location_display
     )
-
-
-@app.route("/explore")
-def explore():
-    """Return index.html for all books with randomized sorting."""
-
-    books = db.session.query(Book, Location).\
-        join(Location, Book.location == Location.id).filter().order_by(func.random())
-
-    return render_template("index.html",
-                           books=books.paginate(page=1, per_page=len(books.all()), error_out=False),
-                           s="", sort_by="")
 
 
 @app.route("/index/<int:page>", methods=["GET", "POST"])
@@ -720,6 +660,7 @@ def check_isbn(isbn:str|None) -> bool:
     else:
         result = (sum(int(ch) for ch in isbn[::2]) + sum(int(ch) * 3 for ch in isbn[1::2]))
         return result % 10 == 0
+
 
 def login_required():
     """Redirects to login page if user is not logged in."""
