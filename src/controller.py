@@ -651,6 +651,87 @@ def index(page=1):
     return render_template("index.html", books=books, s=s, sort_by=sort_by, sort_order=sort_order, per_page=per_page)
 
 
+@app.route("/manage_locations", methods=["GET", "POST"])
+def manage_locations():
+    """View, add, edit, and delete locations."""
+    auth_redirect = login_required()
+    if auth_redirect:
+        return auth_redirect
+
+    if request.method == "POST":
+        if "add_location" in request.form:
+            # Add a new location
+            label_name = request.form.get("label_name", "").strip()
+            full_name = request.form.get("full_name", "").strip()
+
+            if not label_name or not full_name:
+                flash("Both Label Name and Full Name are required.", "danger")
+            else:
+                new_location = Location(label_name=label_name, full_name=full_name)
+                db.session.add(new_location)
+                db.session.commit()
+
+                # Log the new location
+                log_entry = TransactionLog(
+                    action="ADD LOCATION",
+                    book_id=None,  # No book is related to this
+                    book_title=None,
+                    details=f"Added location '{label_name}' ({full_name}) (ID: {new_location.id})."
+                )
+                db.session.add(log_entry)
+                db.session.commit()
+
+                flash("New location added successfully!", "success")
+
+        elif "edit_location" in request.form:
+            # Edit an existing location
+            location_id = int(request.form.get("location_id"))
+            location = Location.query.get(location_id)
+            if location:
+                old_label = location.label_name
+                old_full = location.full_name
+
+                location.label_name = request.form.get("label_name", "").strip()
+                location.full_name = request.form.get("full_name", "").strip()
+                db.session.commit()
+
+                log_entry = TransactionLog(
+                    action="EDIT LOCATION",
+                    book_id=None,
+                    book_title=None,
+                    details=f"Updated location '{old_label}' → '{location.label_name}', "
+                            f"'{old_full}' → '{location.full_name}' (ID: {location_id})."
+                )
+                db.session.add(log_entry)
+                db.session.commit()
+                flash("Location updated successfully!", "success")
+
+        elif "delete_location" in request.form:
+            # Delete a location
+            location_id = int(request.form.get("location_id"))
+            location = Location.query.get(location_id)
+            if location:
+                location_name = f"{location.label_name} ({location.full_name})"
+                db.session.delete(location)
+                db.session.commit()
+
+                log_entry = TransactionLog(
+                    action="DELETE LOCATION",
+                    book_id=None,
+                    book_title=None,
+                    details=f"Deleted location '{location_name}' (ID: {location_id})."
+                )
+                db.session.add(log_entry)
+                db.session.commit()
+                flash("Location deleted successfully!", "success")
+
+        return redirect(url_for("manage_locations"))
+
+    # Fetch all locations to display
+    locations = Location.query.order_by(Location.label_name).all()
+    return render_template("manage_locations.html", locations=locations)
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":

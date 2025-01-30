@@ -29,6 +29,7 @@
           <a href="{{ url_for('add_book') }}" class="btn btn-info btn-block">Add Book</a>
           {% if session['logged_in'] %}
             <a href="{{ url_for('view_logs') }}" class="btn btn-default btn-block">View Logs</a>
+            <a href="{{ url_for('manage_locations') }}" class="btn btn-default btn-block">Manage locations</a>
             <a href="{{ url_for('logout') }}" class="btn btn-default btn-block">Logout</a>
           {% else %}
             <a href="{{ url_for('login') }}" class="btn btn-default btn-block">Login</a>

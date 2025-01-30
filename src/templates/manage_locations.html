@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block main %}
+<h3>Manage Locations</h3>
+
+<!-- Add New Location -->
+<h4>Add a New Location</h4>
+<form method="POST" action="{{ url_for('manage_locations') }}">
+  <div class="form-group">
+    <label for="label_name">Label Name</label>
+    <input type="text" class="form-control" name="label_name" required>
+  </div>
+  <div class="form-group">
+    <label for="full_name">Full Name</label>
+    <input type="text" class="form-control" name="full_name" required>
+  </div>
+  <button type="submit" name="add_location" class="btn btn-success">Add Location</button>
+</form>
+
+<hr>
+
+<!-- List and Edit Existing Locations -->
+<h4>Current Locations</h4>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Label Name</th>
+      <th>Full Name</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for location in locations %}
+    <tr>
+      <form method="POST" action="{{ url_for('manage_locations') }}">
+        <td>
+          <input type="hidden" name="location_id" value="{{ location.id }}">
+          <input type="text" class="form-control" name="label_name" value="{{ location.label_name }}" required>
+        </td>
+        <td>
+          <input type="text" class="form-control" name="full_name" value="{{ location.full_name }}" required>
+        </td>
+        <td>
+          <button type="submit" name="edit_location" class="btn btn-primary btn-sm">Save</button>
+          <button type="submit" name="delete_location" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this location?');">Delete</button>
+        </td>
+      </form>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}
