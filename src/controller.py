@@ -13,8 +13,8 @@ from werkzeug.exceptions import RequestEntityTooLarge
 # Configuration setup
 p = Path(__file__).absolute()
 CONFIG_FILE = "library.cfg"
-PROJECT_ROOT = p.parent
-CONFIG_PATH = next((fpath / CONFIG_FILE for fpath in [p.parents[1], PROJECT_ROOT] if (fpath / CONFIG_FILE).is_file()), None)
+PROJECT_ROOT = p.parents[1]
+CONFIG_PATH = next((fpath / CONFIG_FILE for fpath in [PROJECT_ROOT, p.parent] if (fpath / CONFIG_FILE).is_file()), None)
 if not CONFIG_PATH:
     sys.exit(f"{CONFIG_FILE} not found in src or parent dir. Create it from 'LIBRARY.cfg_EXAMPLE'.")
 
@@ -35,7 +35,7 @@ migrate = Migrate(app, db)
 PAGINATE_BY_HOWMANY = 50
 
 # Configuration for file uploads
-UPLOAD_FOLDER = os.path.join(PROJECT_ROOT, 'uploads')  # Folder to store uploaded files
+UPLOAD_FOLDER = os.path.join(PROJECT_ROOT, 'uploads')
 ALLOWED_EXTENSIONS = {'pdf'}  # Only allow PDF files
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
 

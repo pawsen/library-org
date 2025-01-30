@@ -1,34 +1,79 @@
+This is a simple app to show the location of books for small libraries.
+
+You can add/edit/delete book entries and upload pdf files.
+
+
 
 
 ## Project Status
 
 ### Missing features
-- upload files(pdf) which then can be found from the `index` page,
+- backup of database and uploads
 
 ### bugs
-- Updating a book without ISBN result in an error
-- creating a new book without ISBN result in an error
+- restoring of uploaded files is not possible
 
-## docker
+## Get it running
 Remember to copy `library.cfg_EXAMPLE` to `library.cfg` and change env variables as needed.
 
-NB, just a note about docker:
-- image is the instructions for how to
-- build and run a container
+Initialize the database 
+``` sh
+export FLASK_APP=controller.py
+
+# Initialize the migrations folder (only needed once)
+flask db init
+# Create the initial migration
+flask db migrate -m "Initial migration"
+# Apply the migration to create the database
+flask db upgrade
+```
+This will create a `./migrations` folder and generate the database schema in `./database/books.sqlite` 
+
+To restart with an empty database, simply delete the sql-file and rerun the migration
+
+``` sh
+rm ./src/database/books.sqlite
+flask db upgrade
+```
+
+Uploaded files will be stored in `./uploads`
+
+Run the app
+
+``` sh
+nix develop -c $SHELL
+
+python src/controller.py
+```
+
+or  (fish shell)
+``` sh
+set -x FLASK_APP src/controller.py; set -x FLASK_DEBUG 1; python3 -m flask run --host 0.0.0.0
+```
+
+### docker
 
 Steps to build a tagged image and run it
 ``` sh
 docker build -t library .
-docker run -d --restart=always --name=dbkk-library -p 80:5000 -e FLASK_APP=controller.py library
+docker run -d --restart=always --name=dbkk-library -p 5000:5000 -v "$(pwd)/database:/app/database" -v "$(pwd)/uploads:/app/uploads" library
 ```
+
+Verify the mounted volumes
+
+``` sh
+docker exec -it <container_id> bash
+ls -l /app/
+```
+
 
 With `--restart=always` there is no need for a [systemd-service file](https://stackoverflow.com/a/30450350).
 
-When pullling new code the image have to rebuild and the container deleted(stooped and recreated)
+When pulling new code, the image have to rebuild and the container deleted(stooped and recreated)
 ``` sh
 docker build -t library .
 docker rm dbkk-library
-docker run -d --restart=always --name=dbkk-library -p 80:5000 -e FLASK_APP=controller.py library
+docker run -d --restart=always --name=dbkk-library -p 5000:5000 -v "$(pwd)/database:/app/database" -v "$(pwd)/uploads:/app/uploads" library
 ```
 
 The old image will still exist locally, but `docker images` will show <none> as its name or tag. `docker system prune` will clean up the old image.
@@ -36,13 +81,45 @@ The old image will still exist locally, but `docker images` will show <none> as 
 If the container just runs a one-off test, you might delete the old container before building a new image, or use the `docker run --rm` option to have the container delete itself. add `--entrypoint bash` to get a shell if the app is crashing and the container exists, which prevents `docker exec bash` from working.
 
 ``` sh
-docker run --rm -it -e FLASK_APP=controller.py -e FLASK_DEBUG=1 -p 5000:5000 library
-docker run --rm -it -e FLASK_APP=controller.py -e FLASK_DEBUG=1 -p 5000:5000 --entrypoint bash library
+docker run --rm -it -e FLASK_DEBUG=1 -p 5000:5000 library
+docker run --rm -it -e FLASK_DEBUG=1 -p 5000:5000 --entrypoint bash library
 ```
 
 `docker run` creates and start a new container. `docker start` start an already existing container.
 
-## docker-compose
+#### Debug
+
+``` sh
+docker ps
+docker exec -it <container_id> sh -c "apt update && apt install -y net-tools"
+docker exec -it <container_id> netstat -tulnp
+```
+
+Or check that a webpage is recieved inside the container
+
+``` sh
+docker exec -it <container_id> sh -c "apt update && apt install -y curl"
+docker exec -it <container_id> curl -v http://127.0.0.1:5000
+```
+
+#### NixOS
+
+``` sh
+nix shell github:DavHau/mach-nix
+mach-nix gen -r requirements.txt -o requirements.nix
+```
+
+Build the docker image on NixOS with
+``` sh
+nix build .#dockerImage
+docker load < result
+
+docker run -p 5000:5000 \
+  -v $(pwd)/uploads:/app/uploads \
+  -v $(pwd)/database:/app/database \
+  library:latest
+```
+### docker-compose
 
 `docker-compose` mounts the code into the container so code-changes are automatically seen by the app.
 ``` sh
@@ -53,7 +130,7 @@ docker-compose up -d -f docker-compose.prod.yml
 go to [localhost:5000] (http://localhost:5000) in the browser
 
 
-## Amazon ec2 instance
+### Amazon ec2 instance
 
 ``` sh
 ssh ec2-user@ec2-ip-address-dns-name-here
@@ -67,11 +144,11 @@ sudo usermod -a -G docker ec2-user
 id ec2-user
 # logout
 
-git clone https://github.com/dbkk-dk/library-org.git
-
+git clone https://github.com/pawsen/library-org.git
 ```
 
-## database migration
+
+### database migration
 
 If the database is changed, like adding a new model
 

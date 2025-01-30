@@ -9,5 +9,8 @@ venv/*
 /.venv/
 /.direnv/
 
-/src/database/*
-/src/uploads/*
+/database/*
+/uploads/*
+/migrations/
+/.dir-locals.el
+/result

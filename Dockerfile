@@ -7,13 +7,33 @@ FROM python:3.11-slim-buster
 # https://docs.python.org/3/using/cmdline.html#cmdoption-u
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV PYTHONPATH=/code/src/:$PYTHONPATH
+ENV PYTHONPATH=/app/src/:$PYTHONPATH
 
-WORKDIR /code
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+# Set the working directory inside the container
+WORKDIR /app
 
-COPY library.cfg .
-COPY src .
+# Copy only necessary files to leverage Docker cache
+COPY library.cfg /app/
+COPY requirements.txt /app/
+COPY src /app/src/
 
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Expose the port the Flask app runs on
+EXPOSE 5000
+
+# this is the only way I can get docker to listen to all interfaces, whitout
+# changing controller.py
+# even if I specify `docker run ... -e FLASK_RUN_HOST=0.0.0.0 ..` it still only
+# listen to 127.0.0.1`
+# CMD ["python", "src/controller.py"] ## XXX does not work, just for ref.
+ENV FLASK_APP=controller.py
 CMD ["python", "-m", "flask", "run", "--host=0.0.0.0"]
+
+# use like
+# docker build -t my-library-app .
+# docker run -p 5000:5000 \
+#          -v "$(pwd)/database:/app/database" \
+#          -v "$(pwd)/uploads:/app/uploads" \
+#          my-library-app
