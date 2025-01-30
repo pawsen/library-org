@@ -51,6 +51,10 @@ or  (fish shell)
 set -x FLASK_APP src/controller.py; set -x FLASK_DEBUG 1; python3 -m flask run --host 0.0.0.0
 ```
 
+Then after you log in
+- Add locations (ie shelf-numbers or whatever you use)
+- add books
+
 ### docker
 
 Steps to build a tagged image and run it
@@ -148,6 +152,7 @@ git clone https://github.com/pawsen/library-org.git
 ```
 
 
+## Maintainance
 ### database migration
 
 If the database is changed, like adding a new model
@@ -168,3 +173,19 @@ The database is updated with
 flask db migrate -m "Add transaction log"
 flask db upgrade
 ```
+
+
+## Backups
+
+Use cron to schedule the backup script to run automatically.
+
+- Open the crontab editor
+``` sh
+crontab -e
+```
+- Add a cron job to run the backup script daily at e.g. 2 AM:
+
+``` sh
+0 2 * * * /path/to/backup.sh >> /var/log/dbkk-library-backup.log 2>&1
+```
+
