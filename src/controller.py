@@ -611,9 +611,10 @@ def detail(id=1):
         "detail.html", book=book, location_display=location_display
     )
 
+
 @app.route("/index/", defaults={"page": 1})  # Default page to 1 if not provided
 @app.route("/index/<int:page>", methods=["GET", "POST"])
-def index(page=1):
+def index(page=1):  # Default value for page is 1
     """Show an index of books, provide some basic searchability."""
 
     if request.method == "POST":
@@ -655,7 +656,20 @@ def index(page=1):
     # Execute the pagination
     books = query.paginate(page=page, per_page=per_page, error_out=False)
 
-    return render_template("index.html", books=books, s=s, sort_by=sort_by, sort_order=sort_order, per_page=per_page)
+    # Check if the request is an AJAX request
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        """Handle instant search requests.
+
+        This route is used to handle AJAX requests for instant search. It
+        fetches the search results based on the query and returns the rendered
+        list_books.html template as HTML. This allows the client-side JavaScript
+        to dynamically update the search results without reloading the page. """
+
+        # Return only the search results and pagination controls
+        return render_template("list_books.html", books=books, s=s, sort_by=sort_by, sort_order=sort_order, per_page=per_page)
+    else:
+        # Return the full page for non-AJAX requests
+        return render_template("index.html", books=books, s=s, sort_by=sort_by, sort_order=sort_order, per_page=per_page)
 
 
 @app.route("/manage_locations", methods=["GET", "POST"])

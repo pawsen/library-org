@@ -58,6 +58,9 @@
       margin-bottom: 10px;
     }
   }
+  #search-results {
+    margin-top: 20px;
+  }
 </style>
 {% endblock %}
 
@@ -69,101 +72,92 @@ larger screens to ensure the layout adapts to different screen sizes.
 <div class="container-fluid">
   <div class="row">
     <div class="col-xs-12 col-md-10 col-md-offset-1">
-
       <h3 class="explanation-header text-center">Search title, authors, and subjects above.</h3>
 
-      <div class="row">
-        {% if s %}
-        <div class="col-xs-12">
-          <p class="text-center"><span style="font-weight: bold;">Search Results:</span> {{ books.total }}</p>
-        </div>
-        {% endif %}
-
-        {% if books.pages > 1 %}
-          <div class="col-xs-12">
-            <div class="pagination-controls">
-              <!-- Pages List (Page Numbers) -->
-              <div class="pages-list">
-                {% for page in range(1, books.pages + 1) %}
-                  {% if page == books.page %}
-                    <span class="paginate-pagenumber-container">{{ page }}</span>
-                  {% else %}
-                    <a class="paginate-pagenumber-container" href="{{ url_for(request.endpoint, page=page, s=s, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}">{{ page }}</a>
-                  {% endif %}
-                {% endfor %}
-              </div>
-
-              <!-- Navigation Bar with Prev and Next Buttons -->
-              <nav>
-                <ul class="nav">
-                  <!-- Previous Page Link -->
-                  <li class="nav-item">
-                    {% if books.has_prev %}
-                      <a href="{{ url_for(request.endpoint, page=books.prev_num, s=s, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}" class="nav-link">
-                        Prev
-                      </a>
-                    {% else %}
-                      <span class="nav-link disabled">Prev</span>
-                    {% endif %}
-                  </li>
-
-                  <!-- Next Page Link -->
-                  <li class="nav-item">
-                    {% if books.has_next %}
-                      <a href="{{ url_for(request.endpoint, page=books.next_num, s=s, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}" class="nav-link">
-                        Next
-                      </a>
-                    {% else %}
-                      <span class="nav-link disabled">Next</span>
-                    {% endif %}
-                  </li>
-                </ul>
-              </nav>
-            </div>
-          </div>
-        {% endif %}
+      <!-- Search Results -->
+      <div id="search-results">
+        {% include 'list_books.html' %}
       </div>
-
-      <!-- Table headers with sorting toggle -->
-      <div class="row book-section-headers">
-        <div class="col-xs-12 col-md-5">
-          <a href="{{ url_for(request.endpoint, page=1, s=s, sort_by='title', sort_order='asc' if sort_order == 'desc' else 'desc', per_page=per_page) }}" class="sortable {{ 'asc' if sort_by == 'title' and sort_order == 'asc' else 'desc' }}">Title</a>
-        </div>
-        <div class="col-xs-12 col-md-3">
-          <a href="{{ url_for(request.endpoint, page=1, s=s, sort_by='authors', sort_order='asc' if sort_order == 'desc' else 'desc', per_page=per_page) }}" class="sortable {{ 'asc' if sort_by == 'authors' and sort_order == 'asc' else 'desc' }}">Author</a>
-        </div>
-        <div class="col-xs-12 col-md-2">
-          <a href="{{ url_for(request.endpoint, page=1, s=s, sort_by='location', sort_order='asc' if sort_order == 'desc' else 'desc', per_page=per_page) }}" class="sortable {{ 'asc' if sort_by == 'location' and sort_order == 'asc' else 'desc' }}">Location</a>
-        </div>
-        <div class="col-xs-12 col-md-2">
-          <a href="{{ url_for(request.endpoint, page=1, s=s, sort_by='subjects', sort_order='asc' if sort_order == 'desc' else 'desc', per_page=per_page) }}" class="sortable {{ 'asc' if sort_by == 'subjects' and sort_order == 'asc' else 'desc' }}">Subjects</a>
-        </div>
-      </div>
-
-      <!-- Book entries -->
-      {% for book in books.items %}
-      <div class="row book-section-entry-container">
-        <div class="col-xs-12 col-md-5"><a href="{{ url_for('detail', id=book[0].id) }}">{{ book[0].title }}</a></div>
-        <div class="col-xs-12 col-md-3"><p>{{ book[0].authors }}</p></div>
-        <div class="col-xs-12 col-md-2"><p>{{ book[1].label_name }}, {{ book[1].full_name }}</p></div>
-        <div class="col-xs-12 col-md-2"><p>{{ book[0].subjects }}</p></div>
-      </div>
-      {% endfor %}
-
-      <!-- Pagination Controls: Change number of items per page -->
-      <div class="col-xs-12 col-md-10 col-md-offset-1">
-        <form method="get" action="{{ url_for(request.endpoint, page=1, s=s, sort_by=sort_by, sort_order=sort_order) }}">
-          <label for="per_page">Items per page:</label>
-          <select name="per_page" id="per_page" class="form-control" onchange="this.form.submit()">
-            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
-            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
-            <option value="1000" {% if per_page == 1000 %}selected{% endif %}>1000</option>
-          </select>
-        </form>
-      </div>
-
     </div>
   </div>
 </div>
 
+{% endblock %}
+
+{% block inlinejs %}
+<!-- JS for instant search -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('search');
+    const searchResults = document.getElementById('search-results');
+
+    // Function to fetch and display search results
+    const fetchSearchResults = async (url) => {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest' // Indicate this is an AJAX request
+          }
+        });
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.text();
+        searchResults.innerHTML = data;
+
+        // Update the browser's URL to reflect the current page
+        window.history.pushState({}, '', url);
+
+        // Attach event listeners to pagination links
+        attachPaginationListeners();
+      } catch (error) {
+        console.error('Error fetching search results:', error);
+      }
+    };
+
+    // Debounce function to limit the number of requests
+    const debounce = (func, delay) => {
+      let timeoutId;
+      return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+      };
+    };
+
+    // Attach event listener to the search input
+    searchInput.addEventListener('input', debounce((event) => {
+      const query = event.target.value.trim();
+      const urlParams = new URLSearchParams(window.location.search);
+
+      // Get the current pagination state. Set a fallback value for per_page.
+      // per_page should always be present, this is "just in case™"
+      const currentPage = urlParams.get('page') || 1;
+      const perPage = urlParams.get('per_page') || 50;
+
+       // Build the URL for the AJAX request
+      let url = `/index/?page=${currentPage}&per_page=${perPage}`;
+      if (query.length >= 2) { // Only include the search term if it has at least 2 characters
+        url += `&s=${encodeURIComponent(query)}`;
+      }
+
+      // Fetch the results
+      fetchSearchResults(url);
+    }, 300)); // 300ms debounce delay
+
+    // Function to attach event listeners to pagination links
+    const attachPaginationListeners = () => {
+      const paginationLinks = document.querySelectorAll('.paginate-pagenumber-container, .nav-link');
+      paginationLinks.forEach(link => {
+        link.addEventListener('click', (event) => {
+          event.preventDefault(); // Prevent default link behavior
+          const url = event.target.href;
+          fetchSearchResults(url); // Fetch and display results for the clicked page
+        });
+      });
+    };
+
+    // Initial attachment of pagination listeners
+    attachPaginationListeners();
+  });
+</script>
 {% endblock %}
