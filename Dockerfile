@@ -13,7 +13,6 @@ ENV PYTHONPATH=/app/src/:$PYTHONPATH
 WORKDIR /app
 
 # Copy only necessary files to leverage Docker cache
-COPY library.cfg /app/
 COPY requirements.txt /app/
 COPY src /app/src/
 
@@ -28,12 +27,18 @@ EXPOSE 5000
 # even if I specify `docker run ... -e FLASK_RUN_HOST=0.0.0.0 ..` it still only
 # listen to 127.0.0.1`
 # CMD ["python", "src/controller.py"] ## XXX does not work, just for ref.
-ENV FLASK_APP=controller.py
-CMD ["python", "-m", "flask", "run", "--host=0.0.0.0"]
+#
+# GET DEBUG INFO
+# ENV FLASK_APP=controller.py
+# CMD ["python", "-m", "flask", "run", "--host=0.0.0.0"]
+#
+# PRODUCTION
+CMD ["gunicorn", "src:app", "-b 0.0.0.0:5000"]
 
 # use like
-# docker build -t my-library-app .
+# docker build -t library .
 # docker run -p 5000:5000 \
 #          -v "$(pwd)/database:/app/database" \
 #          -v "$(pwd)/uploads:/app/uploads" \
-#          my-library-app
+#          -v "$(pwd)/library.cfg:/app/library.cfg" \
+#          library:latest

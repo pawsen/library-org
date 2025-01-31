@@ -26,18 +26,21 @@ USER = {"username": CONFIG.get("secrets", "USERNAME"), "password": CONFIG.get("s
 # Database setup
 db_name = "books.sqlite"
 sqlite_db = f"sqlite:////{os.path.join(PROJECT_ROOT, 'database', db_name)}"
+
 app = Flask(__name__)
-app.secret_key = APP_SECRET_KEY
-app.debug = True
+app.config['DEBUG'] = True
+app.config['SECRET_KEY'] = APP_SECRET_KEY
 app.config["SQLALCHEMY_DATABASE_URI"] = sqlite_db
+# Initialize extensions
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-PAGINATE_BY_HOWMANY = 50
 
 # Configuration for file uploads
 UPLOAD_FOLDER = os.path.join(PROJECT_ROOT, 'uploads')
 ALLOWED_EXTENSIONS = {'pdf'}  # Only allow PDF files
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
+
+PAGINATE_BY_HOWMANY = 50
 
 # Ensure the upload folder exists
 if not os.path.exists(UPLOAD_FOLDER):
