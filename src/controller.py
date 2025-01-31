@@ -611,7 +611,7 @@ def detail(id=1):
         "detail.html", book=book, location_display=location_display
     )
 
-
+@app.route("/index/", defaults={"page": 1})  # Default page to 1 if not provided
 @app.route("/index/<int:page>", methods=["GET", "POST"])
 def index(page=1):
     """Show an index of books, provide some basic searchability."""
@@ -634,14 +634,18 @@ def index(page=1):
 
     # Create the query to select books
     query = db.session.query(Book, Location).join(Location, Book.location == Location.id)
-   # Apply filtering if a search term is provided
+    # Apply fuzzy filtering if a search term is provided
+    # Use ilike method instead of contains. The ilike method allows for pattern
+    # matching with wildcards, which can be used to create a more flexible,
+    # fuzzy search.
     if s:
+        search_pattern = f"%{s}%"
         query = query.filter(
             or_(
-                Book.title.contains(s),
-                Book.authors.contains(s),
-                Book.subjects.contains(s),
-                Book.isbn.contains(s),
+                Book.title.ilike(search_pattern),
+                Book.authors.ilike(search_pattern),
+                Book.subjects.ilike(search_pattern),
+                Book.isbn.ilike(search_pattern),
             )
         )
 
