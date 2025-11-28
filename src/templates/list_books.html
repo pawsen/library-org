@@ -5,15 +5,99 @@
     <div class="row">
       <div class="col-xs-12">
         <div class="pagination-controls">
-          <!-- Pages List (Page Numbers) -->
+          <!-- Pages List (smart page numbers) -->
           <div class="pages-list">
-            {% for page in range(1, books.pages + 1) %}
-              {% if page == books.page %}
-                <span class="paginate-pagenumber-container">{{ page }}</span>
+            {% set total = books.pages %}
+            {% set current = books.page %}
+
+            {% if total <= 9 %}
+              {# Few pages: show all #}
+              {% for page in range(1, total + 1) %}
+                {% if page == current %}
+                  <span class="paginate-pagenumber-container">{{ page }}</span>
+                {% else %}
+                  <a class="paginate-pagenumber-container"
+                     href="{{ url_for('index',
+                                      page=page,
+                                      s=s,
+                                      sort_by=sort_by,
+                                      sort_order=sort_order,
+                                      per_page=per_page) }}">
+                    {{ page }}
+                  </a>
+                {% endif %}
+              {% endfor %}
+            {% else %}
+              {# Many pages: always show 1 and last, window = (current-1) .. (current+3) #}
+
+              {# --- Page 1 --- #}
+              {% if current == 1 %}
+                <span class="paginate-pagenumber-container">1</span>
               {% else %}
-                <a class="paginate-pagenumber-container" href="{{ url_for('index', page=page, s=s, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}">{{ page }}</a>
+                <a class="paginate-pagenumber-container"
+                   href="{{ url_for('index',
+                                    page=1,
+                                    s=s,
+                                    sort_by=sort_by,
+                                    sort_order=sort_order,
+                                    per_page=per_page) }}">
+                  1
+                </a>
               {% endif %}
-            {% endfor %}
+
+              {# Compute window [start_page, end_page] within [2, total-1] #}
+              {% set start_page = current - 1 %}
+              {% set end_page = current + 3 %}
+
+              {% if start_page < 2 %}
+                {% set start_page = 2 %}
+              {% endif %}
+              {% if end_page > total - 1 %}
+                {% set end_page = total - 1 %}
+              {% endif %}
+
+              {# Ellipsis after 1 if needed #}
+              {% if start_page > 2 %}
+                <span class="paginate-pagenumber-container">…</span>
+              {% endif %}
+
+              {# Window pages: current-1, current, current+1, current+2, current+3 (clamped) #}
+              {% for page in range(start_page, end_page + 1) %}
+                {% if page == current %}
+                  <span class="paginate-pagenumber-container">{{ page }}</span>
+                {% else %}
+                  <a class="paginate-pagenumber-container"
+                     href="{{ url_for('index',
+                                      page=page,
+                                      s=s,
+                                      sort_by=sort_by,
+                                      sort_order=sort_order,
+                                      per_page=per_page) }}">
+                    {{ page }}
+                  </a>
+                {% endif %}
+              {% endfor %}
+
+              {# Ellipsis before last if needed #}
+              {% if end_page < total - 1 %}
+                <span class="paginate-pagenumber-container">…</span>
+              {% endif %}
+
+              {# --- Last page --- #}
+              {% if current == total %}
+                <span class="paginate-pagenumber-container">{{ total }}</span>
+              {% else %}
+                <a class="paginate-pagenumber-container"
+                   href="{{ url_for('index',
+                                    page=total,
+                                    s=s,
+                                    sort_by=sort_by,
+                                    sort_order=sort_order,
+                                    per_page=per_page) }}">
+                  {{ total }}
+                </a>
+              {% endif %}
+            {% endif %}
           </div>
 
           <!-- Navigation Bar with Prev and Next Buttons -->
@@ -22,7 +106,13 @@
               <!-- Previous Page Link -->
               <li class="nav-item">
                 {% if books.has_prev %}
-                  <a href="{{ url_for('index', page=books.prev_num, s=s, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}" class="nav-link">
+                  <a href="{{ url_for('index',
+                                      page=books.prev_num,
+                                      s=s,
+                                      sort_by=sort_by,
+                                      sort_order=sort_order,
+                                      per_page=per_page) }}"
+                     class="nav-link">
                     Prev
                   </a>
                 {% else %}
@@ -33,7 +123,13 @@
               <!-- Next Page Link -->
               <li class="nav-item">
                 {% if books.has_next %}
-                  <a href="{{ url_for('index', page=books.next_num, s=s, sort_by=sort_by, sort_order=sort_order, per_page=per_page) }}" class="nav-link">
+                  <a href="{{ url_for('index',
+                                      page=books.next_num,
+                                      s=s,
+                                      sort_by=sort_by,
+                                      sort_order=sort_order,
+                                      per_page=per_page) }}"
+                     class="nav-link">
                     Next
                   </a>
                 {% else %}
@@ -50,42 +146,87 @@
   <!-- Table headers with sorting toggle -->
   <div class="row book-section-headers">
     <div class="col-xs-12 col-md-5">
-      <a href="{{ url_for('index', page=1, s=s, sort_by='title', sort_order='asc' if sort_order == 'desc' else 'desc', per_page=per_page) }}" class="sortable {{ 'asc' if sort_by == 'title' and sort_order == 'asc' else 'desc' }}">Title</a>
+      <a href="{{ url_for('index',
+                          page=1,
+                          s=s,
+                          sort_by='title',
+                          sort_order='asc' if sort_order == 'desc' else 'desc',
+                          per_page=per_page) }}"
+         class="sortable {{ 'asc' if sort_by == 'title' and sort_order == 'asc' else 'desc' }}">
+        Title
+      </a>
     </div>
     <div class="col-xs-12 col-md-3">
-      <a href="{{ url_for('index', page=1, s=s, sort_by='authors', sort_order='asc' if sort_order == 'desc' else 'desc', per_page=per_page) }}" class="sortable {{ 'asc' if sort_by == 'authors' and sort_order == 'asc' else 'desc' }}">Author</a>
+      <a href="{{ url_for('index',
+                          page=1,
+                          s=s,
+                          sort_by='authors',
+                          sort_order='asc' if sort_order == 'desc' else 'desc',
+                          per_page=per_page) }}"
+         class="sortable {{ 'asc' if sort_by == 'authors' and sort_order == 'asc' else 'desc' }}">
+        Author
+      </a>
     </div>
     <div class="col-xs-12 col-md-2">
-      <a href="{{ url_for('index', page=1, s=s, sort_by='location', sort_order='asc' if sort_order == 'desc' else 'desc', per_page=per_page) }}" class="sortable {{ 'asc' if sort_by == 'location' and sort_order == 'asc' else 'desc' }}">Location</a>
+      <a href="{{ url_for('index',
+                          page=1,
+                          s=s,
+                          sort_by='location',
+                          sort_order='asc' if sort_order == 'desc' else 'desc',
+                          per_page=per_page) }}"
+         class="sortable {{ 'asc' if sort_by == 'location' and sort_order == 'asc' else 'desc' }}">
+        Location
+      </a>
     </div>
     <div class="col-xs-12 col-md-2">
-      <a href="{{ url_for('index', page=1, s=s, sort_by='subjects', sort_order='asc' if sort_order == 'desc' else 'desc', per_page=per_page) }}" class="sortable {{ 'asc' if sort_by == 'subjects' and sort_order == 'asc' else 'desc' }}">Subjects</a>
+      <a href="{{ url_for('index',
+                          page=1,
+                          s=s,
+                          sort_by='subjects',
+                          sort_order='asc' if sort_order == 'desc' else 'desc',
+                          per_page=per_page) }}"
+         class="sortable {{ 'asc' if sort_by == 'subjects' and sort_order == 'asc' else 'desc' }}">
+        Subjects
+      </a>
     </div>
   </div>
 
   <!-- Book entries -->
   {% for book in books.items %}
-  <div class="row book-section-entry-container">
-    <div class="col-xs-12 col-md-5"><a href="{{ url_for('detail', id=book[0].id) }}">{{ book[0].title }}</a></div>
-    <div class="col-xs-12 col-md-3"><p>{{ book[0].authors }}</p></div>
-    <div class="col-xs-12 col-md-2"><p>{{ book[1].label_name }}, {{ book[1].full_name }}</p></div>
-    <div class="col-xs-12 col-md-2"><p>{{ book[0].subjects }}</p></div>
-  </div>
+    <div class="row book-section-entry-container">
+      <div class="col-xs-12 col-md-5">
+        <a href="{{ url_for('detail', id=book[0].id) }}">{{ book[0].title }}</a>
+      </div>
+      <div class="col-xs-12 col-md-3">
+        <p>{{ book[0].authors }}</p>
+      </div>
+      <div class="col-xs-12 col-md-2">
+        <p>{{ book[1].label_name }}, {{ book[1].full_name }}</p>
+      </div>
+      <div class="col-xs-12 col-md-2">
+        <p>{{ book[0].subjects }}</p>
+      </div>
+    </div>
   {% endfor %}
 
   <!-- Pagination Controls: Change number of items per page -->
-  <div class="col-xs-12 col-md-10 col-md-offset-1">
-    <form method="get" action="{{ url_for(request.endpoint, page=1, s=s, sort_by=sort_by, sort_order=sort_order) }}">
-      <!-- Conditionally include the search term if it exists -->
+  <div class="col-xs-12">
+    <form method="get"
+          action="{{ url_for(request.endpoint,
+                             page=1,
+                             s=s,
+                             sort_by=sort_by,
+                             sort_order=sort_order) }}">
       {% if s %}
-        <!-- Hidden input to preserve the search term -->
         <input type="hidden" name="s" value="{{ s }}">
       {% endif %}
       <label for="per_page">Items per page:</label>
-      <select name="per_page" id="per_page" class="form-control" onchange="this.form.submit()">
-        <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+      <select name="per_page" id="per_page"
+              class="form-control"
+              onchange="this.form.submit()">
+        <option value="50"  {% if per_page == 50  %}selected{% endif %}>50</option>
         <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
-        <option value="1000" {% if per_page == 1000 %}selected{% endif %}>1000</option>
+        <option value="1000"{% if per_page == 1000 %}selected{% endif %}>1000</option>
       </select>
     </form>
   </div>
