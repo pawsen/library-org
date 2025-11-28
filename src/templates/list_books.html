@@ -1,4 +1,35 @@
 <!-- templates/list_books.html -->
+{% block inlinecss %}
+<style type="text/css">
+    /* Put the 4 sortable headers on one horizontal line */
+    .book-section-headers {
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Override Bootstrap column behavior inside the header row */
+    .book-section-headers>div {
+        float: none;
+        /* kill Bootstrap float */
+        width: auto;
+        /* let flex handle widths */
+        flex: 1 1 0;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    /* Make the header links compact so they don't wrap easily */
+    .book-section-headers a.sortable {
+        display: block;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+</style>
+{% endblock %}
+
+
 {% if books.items %}
   <!-- Pagination Controls -->
   {% if books.pages > 1 %}

@@ -2,62 +2,110 @@
 
 {% block inlinecss %}
 <style type="text/css">
-.no-openlibrary-preview {
-  font-size: 0.9em;
-}
+    .detail-page {
+        margin-top: 8px;
+        margin-bottom: 8px;
+    }
 
-.detail-view-container {
-  margin-top: 20px;
-}
+    .detail-card {
+        background: #fff;
+        border-radius: 6px;
+        padding: 8px 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
 
-.detail-view-image img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px; /* Optional: Add rounded corners to the image */
-  transition: transform 0.3s ease; /* Smooth scaling effect */
-}
+    .detail-view-title {
+        font-size: 1.6rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
 
-.detail-view-fields {
-  padding: 20px;
-}
+    .detail-view-fields p {
+        margin-bottom: 6px;
+    }
 
-.detail-view-title {
-  font-size: 24px;
-  font-weight: bold;
-}
+    .detail-view-image img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
 
-.detail-view-content {
-  font-size: 16px;
-  color: #555; /* Slightly darker text for better readability */
-}
+    /* Mobile */
+    @media (max-width: 767px) {
+        .detail-view-image {
+            text-align: center;
+            margin-bottom: 16px;
+        }
 
-@media (max-width: 767px) {
-  .detail-view-image {
-    text-align: center; /* Center the image on smaller screens */
-    margin-bottom: 20px; /* Add space between image and text */
-  }
+        .detail-view-title {
+            text-align: center;
+            font-size: 1.4rem;
+        }
+    }
 
-  .detail-view-image img {
-    max-width: 80%; /* Reduce image size on smaller screens */
-  }
+    /* Navigation buttons */
+    /* Tiny Prev / Next / Edit buttons in detail top nav */
+    .detail-nav {
+        margin: 4px 0;
+    }
 
-  .detail-view-title {
-    font-size: 20px; /* Smaller title for mobile */
-  }
+    .detail-nav .nav {
+        display: flex;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding-left: 0;
+        margin-bottom: 0;
+        list-style: none;
+    }
 
-  .detail-view-content {
-    font-size: 14px; /* Smaller text for mobile */
-  }
-}
+    .detail-nav .nav-item {
+        float: none;
+    }
+
+    /* Make links very small, unobtrusive pills */
+    .detail-nav .nav>li>a.nav-link,
+    .detail-nav .nav>li>span.nav-link {
+        display: inline-block;
+        padding: 1px 6px;
+        /* smaller padding */
+        font-size: 0.7rem;
+        /* smaller text */
+        line-height: 1.2;
+        border-radius: 999px;
+
+        background-color: #337ab7;
+        color: #fff;
+        border: 1px solid #2e6da4;
+        text-decoration: none;
+        width: auto;
+        float: none;
+    }
+
+    .detail-nav .nav>li>a.nav-link:hover,
+    .detail-nav .nav>li>a.nav-link:focus {
+        background-color: #286090;
+        border-color: #204d74;
+        color: #fff;
+        text-decoration: none;
+    }
+
+    /* Disabled variant */
+    .detail-nav .nav>li>span.nav-link.disabled {
+        background-color: #ccc;
+        border-color: #bbb;
+        color: #666;
+        cursor: default;
+        pointer-events: none;
+    }
 </style>
 {% endblock %}
 
 {% block main %}
 
-<!-- Navigate previous/next book. No /real/ check that id actually exists -->
 {% if book.id %}
-<nav>
-    <ul class="nav justify-content-center">
+<nav class="detail-nav">
+    <ul class="nav">
         <li class="nav-item">
             <a class="nav-link" href="{{ url_for('detail', id=book.id-1) }}">Prev</a>
         </li>
@@ -71,71 +119,86 @@
 </nav>
 {% endif %}
 
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-xs-12 col-md-10 col-md-offset-1">
+<div class="container-fluid detail-page">
+    <div class="row">
+        <div class="col-xs-12 col-md-10 col-md-offset-1">
+            <div class="detail-card">
 
-      <div class="row detail-view-container">
-        <!-- Book Image -->
-        <div class="col-xs-12 col-md-4 detail-view-image">
-          {% if book.openlibrary_medcover_url %}
-            <img src="{{ book.openlibrary_medcover_url }}" alt="{{ book.title }} Cover" class="img-fluid" loading="lazy">
-          {% else %}
-            <img src="/static/dist/images/lincoln-inaug-bible.jpg" alt="Default Book Cover" class="img-fluid">
-          {% endif %}
-        </div>
+                <div class="row detail-view-container">
 
-        <!-- Book Details -->
-        <div class="col-xs-12 col-md-8 detail-view-fields">
-          <p><span class="detail-view-title">{{ book.title }}</span></p>
-          <p><span class="detail-view-content">Author(s): </span>{{ book.authors }}</p>
-          <p><span class="detail-view-content">Published: </span>{{ book.publish_date }}</p>
+                    <!-- Book Details -->
+                    <div class="col-xs-12 col-md-8 detail-view-fields">
+                        <h2 class="detail-view-title">{{ book.title }}</h2>
 
-          {% if book.document_path %}
-            <div class="row">
-              <div class="col-xs-12">
-                <h4>
-                  <a href="{{ url_for('download_document', id=book.id) }}" target="_blank">Download PDF</a>
-                </h4>
-              </div>
+                        <p><strong>Author(s):</strong> {{ book.authors }}</p>
+
+                        {% if book.publish_date %}
+                        <p><strong>Published:</strong> {{ book.publish_date }}</p>
+                        {% endif %}
+
+                        {% if book.number_of_pages %}
+                        <p><strong>Pages:</strong> {{ book.number_of_pages }}</p>
+                        {% endif %}
+
+                        {% if book.document_path %}
+                        <p>
+                            <strong>Document:</strong>
+                            <a href="{{ url_for('download_document', id=book.id) }}" target="_blank">
+                                Download PDF
+                            </a>
+                        </p>
+                        {% endif %}
+
+                        {% if book.description %}
+                        <p><strong>Description:</strong></p>
+                        <p>{{ book.description }}</p>
+                        {% endif %}
+
+                        {% if book.subjects %}
+                        <p><strong>Subjects:</strong> {{ book.subjects }}</p>
+                        {% endif %}
+
+                        <p><strong>Links:</strong>
+                            {% if book.isbn %}
+                            <a href="https://www.amazon.com/gp/search?index=books&field-isbn={{ book.isbn }}"
+                                target="_blank">
+                                ISBN: {{ book.isbn }}
+                            </a>
+                            <b>;</b>
+                            {% endif %}
+                            <a href="https://google.com/search?q={{ book.title }}+{{ book.authors }}" target="_blank">
+                                Google Search
+                            </a>
+                            {% if book.openlibrary_preview_url %}
+                            <b>;</b>
+                            <a href="{{ book.openlibrary_preview_url }}" target="_blank">
+                                Online Preview
+                            </a>
+                            {% endif %}
+                        </p>
+
+                        {% if location_display %}
+                        <p><strong>Location:</strong>
+                            {{ location_display.label_name }}, {{ location_display.full_name }}
+                        </p>
+                        {% else %}
+                        <p><strong>Location:</strong> Not specified</p>
+                        {% endif %}
+                    </div>
+
+
+                    <!-- Book Image -->
+                    <div class="col-xs-12 col-md-4 detail-view-image">
+                        {% if book.openlibrary_medcover_url %}
+                        <img src="{{ book.openlibrary_medcover_url }}" alt="{{ book.title }} Cover" loading="lazy">
+                        {% else %}
+                        <img src="/static/dist/images/lincoln-inaug-bible.jpg" alt="Default Book Cover">
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-          {% endif %}
-
-          {% if book.description %}
-            <div class="mt-3">
-              <h5>Description:</h5>
-              <p>{{ book.description }}</p>
-            </div>
-          {% endif %}
-
-          <br>
-          <p><span class="detail-view-content">Subjects: </span>{{ book.subjects }}</p>
-          <p><span class="detail-view-content">Pages: </span>{{ book.number_of_pages }}</p>
-
-          <p><span class="detail-view-content"></span>
-          {% if book.isbn %}
-            <a href="https://www.amazon.com/gp/search?index=books&field-isbn={{ book.isbn }}" target="_blank"> ISBN: {{ book.isbn }}</a>
-          {% endif %}
-          <br>
-          <a href="https://google.com/search?q={{ book.title }}+{{ book.authors }}" target="_blank">Google Search</a>
-
-          {% if book.openlibrary_preview_url %}
-          <p><span class="detail-view-content"></span>
-            <a href="{{ book.openlibrary_preview_url }}" target="_blank">Online Preview</a>
-          {% endif %}
-
-          {% if location_display %}
-          <br>
-          <p class="text-underline"><u>Location:</u></p>
-          <p class="detail-view-content">{{ location_display.label_name }}, {{ location_display.full_name }}</p>
-          {% else %}
-          <p><span class="detail-view-content">Location: </span>Not specified</p>
-          {% endif %}
         </div>
-      </div>
-
     </div>
-  </div>
 </div>
 
 {% endblock %}
