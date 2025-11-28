@@ -1,16 +1,25 @@
-
 version: '3.8'
 
+# podman-compose --podman-run-args='--replace' up --build
 services:
- web:
-  build:
-   dockerfile: ./Dockerfile
-   context: .
-  ports:
-  - 5000:5000
-  volumes:
-  - ./:/code
-  env_file:
-  - ./.env.dev
-  # command: ["python", "-m", "flask", "run", "--host=0.0.0.0"]
-
+  web:
+    container_name: dbkk-library
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: library
+    restart: always
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./.env.dev
+    volumes:
+      # match: -v "$(pwd)/database:/app/database"
+      - ./database:/app/database
+      # match: -v "$(pwd)/uploads:/app/uploads"
+      - ./uploads:/app/uploads
+      # match: -v "$(pwd)/library.cfg:/app/library.cfg"
+      - ./library.cfg:/app/library.cfg
+      # for live code reload in Flask – mount source into the app dir
+      - ./:/app
+    command: ["python", "-m", "flask", "run", "--host=0.0.0.0", "--reload"]

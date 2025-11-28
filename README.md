@@ -119,6 +119,7 @@ docker run -p 5000:5000 \
 `docker-compose` mounts the code into the container so code-changes are automatically seen by the app.
 ``` sh
 docker-compose up -d  # or for production
+podman-compose --podman-run-args='--replace' up --build
 docker-compose up -d -f docker-compose.prod.yml
 ```
 
