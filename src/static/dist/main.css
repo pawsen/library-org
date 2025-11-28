@@ -6204,6 +6204,61 @@ body {
 .footer-container {
   min-height: 200px; }
 
+/* Changes to default main.css */
 body {
     min-width: 0;
 }
+
+/* === Mobile: make header actions small and out of the way === */
+@media (max-width: 767px) {
+  /* Put the actions in the top-right area */
+  .header-actions {
+    justify-content: flex-end;       /* move to the right */
+    text-align: right;
+  }
+
+  /* Turn the vertical stack into a small horizontal button row */
+  .header-actions-group {
+    width: auto;
+    max-width: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0;
+  }
+
+  .header-actions-group .btn {
+    width: auto;                     /* no more full-width */
+    padding: 2px 6px;                /* smaller tap area */
+    font-size: 0.8rem;               /* smaller text */
+    line-height: 1.2;
+  }
+}
+
+/* Tighter header - less vertical space around title/search/actions */
+.header-container {
+  margin-bottom: 4px;            /* was larger via wrapper/rows */
+}
+
+.header-content {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.header-title .title {
+  margin-top: 0;
+  margin-bottom: 2px;
+}
+
+/* Search form shouldn't add extra bottom margin */
+.header-search .search-form {
+  margin-bottom: 0;
+}
+
+/* Action buttons: tighter stack */
+.header-actions-group .btn {
+  margin-bottom: 2px;
+}
+
+
+
