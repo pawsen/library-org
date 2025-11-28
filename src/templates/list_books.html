@@ -1,7 +1,113 @@
 <!-- templates/list_books.html -->
 {% block inlinecss %}
 <style type="text/css">
+    .sortable {
+        cursor: pointer;
+    }
+
+    .sortable.asc::after {
+        content: " ↑";
+    }
+
+    .sortable.desc::after {
+        content: " ↓";
+    }
+
+    .book-section-entry-container {
+        margin-bottom: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+        /* Add a separator between rows */
+    }
+
+    .book-section-entry-container p {
+        margin: 0;
+        word-wrap: break-word;
+        /* Ensure long text wraps */
+    }
+
+    .book-section-headers {
+        font-weight: bold;
+        padding: 10px 0;
+        border-bottom: 2px solid #ddd;
+        /* Add a separator for headers */
+    }
+
+    /* Keep page numbers and Prev/Next on the same line */
+    .pagination-controls {
+        display: flex;
+        flex-wrap: wrap;
+        /* allows wrap only on very small screens */
+        justify-content: center;
+        /* center whole block */
+        align-items: center;
+    }
+
+    /* Page numbers block */
+    .pagination-controls .pages-list {
+        flex: 0 0 auto;
+        display: inline-block;
+        margin-right: 6px;
+        /* small gap before Prev/Next */
+    }
+
+    /* Prev/Next block */
+    .pagination-controls>nav {
+        flex: 0 0 auto;
+        display: inline-block;
+        margin: 0;
+    }
+
+    /* Make sure the inner .nav doesn't stretch full width */
+    .pagination-controls>nav .nav {
+        display: inline-flex;
+        padding-left: 0;
+        margin-bottom: 0;
+        list-style: none;
+    }
+
+    .pagination-controls>nav .nav>li {
+        float: none;
+    }
+
+    /* Prev/Next in pagination: same tiny pills as detail-nav */
+    .pagination-controls>nav .nav>li>a.nav-link,
+    .pagination-controls>nav .nav>li>span.nav-link {
+        display: inline-block;
+        padding: 1px 6px;
+        /* smaller padding */
+        font-size: 0.7rem;
+        /* smaller text */
+        line-height: 1.2;
+        border-radius: 999px;
+
+        background-color: #337ab7;
+        color: #fff;
+        border: 1px solid #2e6da4;
+        text-decoration: none;
+        width: auto;
+        float: none;
+    }
+
+    .pagination-controls>nav .nav>li>a.nav-link:hover,
+    .pagination-controls>nav .nav>li>a.nav-link:focus {
+        background-color: #286090;
+        border-color: #204d74;
+        color: #fff;
+        text-decoration: none;
+    }
+
+    /* Disabled Prev/Next */
+    .pagination-controls>nav .nav>li>span.nav-link.disabled {
+        background-color: #ccc;
+        border-color: #bbb;
+        color: #666;
+        cursor: default;
+        pointer-events: none;
+    }
+
     /* Put the 4 sortable headers on one horizontal line */
+    /*****************************************************/
     .book-section-headers {
         display: flex;
         flex-wrap: nowrap;

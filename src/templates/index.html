@@ -2,65 +2,6 @@
 
 {% block inlinecss %}
 <style type="text/css">
-  .sortable {
-    cursor: pointer;
-  }
-  .sortable.asc::after {
-    content: " ↑";
-  }
-  .sortable.desc::after {
-    content: " ↓";
-  }
-  .book-section-entry-container {
-    margin-bottom: 10px;
-    padding: 10px 0;
-    border-bottom: 1px solid #eee; /* Add a separator between rows */
-  }
-  .book-section-entry-container p {
-    margin: 0;
-    word-wrap: break-word; /* Ensure long text wraps */
-  }
-  .book-section-headers {
-    font-weight: bold;
-    padding: 10px 0;
-    border-bottom: 2px solid #ddd; /* Add a separator for headers */
-  }
-  .pagination-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    margin: 20px 0;
-  }
-  .pagination-controls .pages-list {
-    flex: 1;
-    text-align: center;
-  }
-  .pagination-controls .nav {
-    flex: 1;
-    justify-content: center;
-  }
-  @media (max-width: 767px) {
-    .book-section-headers, .book-section-entry-container div {
-      text-align: center;
-    }
-    .book-section-entry-container div {
-      margin-bottom: 10px;
-    }
-    .pagination-controls {
-      flex-direction: column;
-    }
-    .pagination-controls .pages-list {
-      order: 2;
-    }
-    .pagination-controls .nav {
-      order: 1;
-      margin-bottom: 10px;
-    }
-  }
-  #search-results {
-    margin-top: 20px;
-  }
 </style>
 {% endblock %}
 
@@ -70,16 +11,16 @@ Bootstrap Grid System: Used col-xs-12 for mobile devices and col-md-* for
 larger screens to ensure the layout adapts to different screen sizes.
 -->
 <div class="container-fluid">
-  <div class="row">
-    <div class="col-xs-12 col-md-10 col-md-offset-1">
-      <h3 class="explanation-header text-center">Search title, authors, and subjects above.</h3>
+    <div class="row">
+        <div class="col-xs-12">
+            <!-- <h3 class="explanation-header text-center">Search title, authors, and subjects above.</h3> -->
 
-      <!-- Search Results -->
-      <div id="search-results">
-        {% include 'list_books.html' %}
-      </div>
+            <!-- Search Results -->
+            <div id="search-results">
+                {% include 'list_books.html' %}
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 {% endblock %}
@@ -87,77 +28,77 @@ larger screens to ensure the layout adapts to different screen sizes.
 {% block inlinejs %}
 <!-- JS for instant search -->
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const searchInput = document.getElementById('search');
-    const searchResults = document.getElementById('search-results');
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('search');
+        const searchResults = document.getElementById('search-results');
 
-    // Function to fetch and display search results
-    const fetchSearchResults = async (url) => {
-      try {
-        const response = await fetch(url, {
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest' // Indicate this is an AJAX request
-          }
-        });
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        const data = await response.text();
-        searchResults.innerHTML = data;
+        // Function to fetch and display search results
+        const fetchSearchResults = async (url) => {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest' // Indicate this is an AJAX request
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.text();
+                searchResults.innerHTML = data;
 
-        // Update the browser's URL to reflect the current page
-        window.history.pushState({}, '', url);
+                // Update the browser's URL to reflect the current page
+                window.history.pushState({}, '', url);
 
-        // Attach event listeners to pagination links
+                // Attach event listeners to pagination links
+                attachPaginationListeners();
+            } catch (error) {
+                console.error('Error fetching search results:', error);
+            }
+        };
+
+        // Debounce function to limit the number of requests
+        const debounce = (func, delay) => {
+            let timeoutId;
+            return function (...args) {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        };
+
+        // Attach event listener to the search input
+        searchInput.addEventListener('input', debounce((event) => {
+            const query = event.target.value.trim();
+            const urlParams = new URLSearchParams(window.location.search);
+
+            // Get the current pagination state. Set a fallback value for per_page.
+            // per_page should always be present, this is "just in case™"
+            const currentPage = urlParams.get('page') || 1;
+            const perPage = urlParams.get('per_page') || 50;
+
+            // Build the URL for the AJAX request
+            let url = `/index/?page=${currentPage}&per_page=${perPage}`;
+            if (query.length >= 2) { // Only include the search term if it has at least 2 characters
+                url += `&s=${encodeURIComponent(query)}`;
+            }
+
+            // Fetch the results
+            fetchSearchResults(url);
+        }, 300)); // 300ms debounce delay
+
+        // Function to attach event listeners to pagination links
+        const attachPaginationListeners = () => {
+            const paginationLinks = document.querySelectorAll('.paginate-pagenumber-container, .nav-link');
+            paginationLinks.forEach(link => {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault(); // Prevent default link behavior
+                    const url = event.target.href;
+                    fetchSearchResults(url); // Fetch and display results for the clicked page
+                });
+            });
+        };
+
+        // Initial attachment of pagination listeners
         attachPaginationListeners();
-      } catch (error) {
-        console.error('Error fetching search results:', error);
-      }
-    };
-
-    // Debounce function to limit the number of requests
-    const debounce = (func, delay) => {
-      let timeoutId;
-      return function (...args) {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => func.apply(this, args), delay);
-      };
-    };
-
-    // Attach event listener to the search input
-    searchInput.addEventListener('input', debounce((event) => {
-      const query = event.target.value.trim();
-      const urlParams = new URLSearchParams(window.location.search);
-
-      // Get the current pagination state. Set a fallback value for per_page.
-      // per_page should always be present, this is "just in case™"
-      const currentPage = urlParams.get('page') || 1;
-      const perPage = urlParams.get('per_page') || 50;
-
-       // Build the URL for the AJAX request
-      let url = `/index/?page=${currentPage}&per_page=${perPage}`;
-      if (query.length >= 2) { // Only include the search term if it has at least 2 characters
-        url += `&s=${encodeURIComponent(query)}`;
-      }
-
-      // Fetch the results
-      fetchSearchResults(url);
-    }, 300)); // 300ms debounce delay
-
-    // Function to attach event listeners to pagination links
-    const attachPaginationListeners = () => {
-      const paginationLinks = document.querySelectorAll('.paginate-pagenumber-container, .nav-link');
-      paginationLinks.forEach(link => {
-        link.addEventListener('click', (event) => {
-          event.preventDefault(); // Prevent default link behavior
-          const url = event.target.href;
-          fetchSearchResults(url); // Fetch and display results for the clicked page
-        });
-      });
-    };
-
-    // Initial attachment of pagination listeners
-    attachPaginationListeners();
-  });
+    });
 </script>
 {% endblock %}
