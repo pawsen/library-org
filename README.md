@@ -52,7 +52,7 @@ The `database` and `uploads` directories and `library.cfg` should be mounted int
 Steps to build a tagged image and run it
 ``` sh
 docker build -t library .
-docker run -d --restart=always --name=dbkk-library -p 5000:5000 \
+docker run -d --restart=always --name=dbkk-library -p 80:5000 \
   -v "$(pwd)/database:/app/database" \
   -v "$(pwd)/uploads:/app/uploads" \
   -v "$(pwd)/library.cfg:/app/library.cfg" \
