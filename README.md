@@ -143,6 +143,23 @@ id ec2-user
 git clone https://github.com/pawsen/library-org.git
 ```
 
+update the code/app
+
+``` sh
+git fetch --all
+git reset --hard origin/master
+
+
+docker stop dbkk-library
+docker rm dbkk-library
+docker build -t library .
+
+docker run -d --restart=always --name=dbkk-library -p 80:5000 \
+  -v "$(pwd)/database:/app/database" \
+  -v "$(pwd)/uploads:/app/uploads" \
+  -v "$(pwd)/library.cfg:/app/library.cfg" \
+  library
+```
 
 ### NixOS
 Running this on a NixOS server requires 
