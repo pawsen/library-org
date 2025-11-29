@@ -233,6 +233,13 @@ def handle_large_file(error):
 def home():
     return redirect(url_for("index", page=1))
 
+@app.route("/howto")
+def howto():
+    # Fetch all locations to display
+    locations = Location.query.order_by(Location.label_name).all()
+    return render_template("howto.html", locations=locations)
+
+
 @app.route("/add_book", methods=["GET", "POST"])
 def add_book():
     """Add a new book to the system by entering ISBN or manually filling fields."""

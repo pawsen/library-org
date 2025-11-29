@@ -32,6 +32,7 @@
         <!-- Actions -->
         <div class="col-xs-12 col-sm-3 header-actions">
           <div class="header-actions-group">
+            <a href="{{ url_for('howto') }}" class="btn btn-danger btn-block">Howto</a>
             <a href="{{ url_for('add_book') }}" class="btn btn-info btn-block">Add Book</a>
 
             {% if session.get('logged_in') %}

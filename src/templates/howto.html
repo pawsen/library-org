@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block main %}
+
+<div class="container py-4">
+
+    <h2 class="mb-4">Howto</h2>
+
+    <!-- Eksempel: finde en bog -->
+    <section class="mb-4">
+        <h3 class="h4 mb-3">Find bogen på hylden</h3>
+
+        <p>
+            Du har fundet bogen
+            <a href="https://www.goodreads.com/book/show/3727817-the-shining-mountain">
+                The Shining Mountain – two men on Changabang's west wall
+            </a>
+            af Peter Boardman.
+        </p>
+
+        <p>
+            Bogen er placeret på hylde <em>2.12, Asien</em>.
+            Det ses fra
+            <a href="{{ url_for('detail', id=199) }}">{{ url_for('detail', id=199) }}</a>,
+            infosiden for bogen, hvor <strong>Location</strong> angiver hvor den står.
+        </p>
+        <div class="text-center my-3">
+        <img
+            src="/static/dist/images/book-detail.png"
+            alt="Bogdetaljer"
+            class="img-responsive center-block">
+        </div>
+
+        <p class="mb-0">
+            Hylderne findes i det optiske tårn. Du kan låne en nøgle ved caféen.
+            Oppe i tårnet har du god udsigt, toilet, lammeskind og en masse bøger.
+        </p>
+    </section>
+
+    <hr class="my-4">
+
+    <!-- Hyldenummer / emner -->
+    <section class="mb-4">
+        <h3 class="h4 mb-3">Hyldenummer og emner</h3>
+
+        <p>
+            Alle bøger har et hyldenummer, f.eks. <strong>2.10</strong>.
+            2.10 er bøger om <strong>Storbritannien</strong>.
+        </p>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-striped table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 25%;">Hyldenummer</th>
+                        <th>Beskrivelse</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for location in locations %}
+                    <tr>
+                        <td>{{ location.label_name }}</td>
+                        <td>{{ location.full_name }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <hr class="my-4">
+
+    <!-- Opret / redigér bog -->
+    <section class="mb-4">
+        <h3 class="h4 mb-3">Opret eller redigér en bog</h3>
+
+        <p>
+            Du tilføjer en bog til systemet, eller retter information på en eksisterende,
+            ved at <a href="{{ url_for('login') }}">logge ind</a>.
+            Brugernavn og password er <code>dbkk</code>.
+        </p>
+
+        <ol class="mb-3">
+            <li>Log ind.</li>
+            <li>
+                Hvis bogen har et ISBN, kan du auto-udfylde ved at indtaste nummeret.
+                Ellers udfyld felterne manuelt.
+            </li>
+            <li>Vælg en placering (hylde) og tryk <strong>Submit</strong>.</li>
+            <li>
+                Lav en lille label til ryggen af bogen med plads til to linjer:
+                øverste linje er hyldenummer, nederste linje er de to første bogstaver
+                af forfatterens efternavn.
+            </li>
+        </ol>
+
+        <p class="mb-0">
+            Når du er logget ind, kan du fra detaljesiden til en bog trykke
+            <strong>Edit</strong> for at ændre placering, beskrivelse, emneord m.v.,
+            eller slette den fra databasen.
+        </p>
+    </section>
+
+</div>
+
+{% endblock %}
