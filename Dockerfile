@@ -5,9 +5,9 @@ FROM python:3.11-slim-buster
 # PYTHONDONTWRITEBYTECODE: Prevents Python from writing pyc files to disc
 # (equivalent to python -B
 # https://docs.python.org/3/using/cmdline.html#cmdoption-u
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONPATH=/app/src/:$PYTHONPATH
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/src
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -22,18 +22,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Expose the port the Flask app runs on
 EXPOSE 5000
 
-# this is the only way I can get docker to listen to all interfaces, whitout
-# changing controller.py
-# even if I specify `docker run ... -e FLASK_RUN_HOST=0.0.0.0 ..` it still only
-# listen to 127.0.0.1`
-# CMD ["python", "src/controller.py"] ## XXX does not work, just for ref.
+# this is the only way I can get docker to listen to all interfaces as a dev server
+# Modify controller.py
+# if __name__ == "__main__":
+#     app.run(host="0.0.0.0", port=5000)
 #
 # GET DEBUG INFO
 # ENV FLASK_APP=controller.py
 # CMD ["python", "-m", "flask", "run", "--host=0.0.0.0"]
 #
 # PRODUCTION
-CMD ["gunicorn", "src:app", "-b 0.0.0.0:5000"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "src.controller:app"]
 
 # use like
 # docker build -t library .
