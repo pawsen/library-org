@@ -9,6 +9,7 @@ from pathlib import Path
 # for file upload
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configuration setup
 p = Path(__file__).absolute()
@@ -31,6 +32,26 @@ app = Flask(__name__)
 app.config['DEBUG'] = True
 app.config['SECRET_KEY'] = APP_SECRET_KEY
 app.config["SQLALCHEMY_DATABASE_URI"] = sqlite_db
+
+# Serve the app from a url/path, ie example.com/apps/library
+# Set the ENV: SCRIPT_NAME = apps/library when starting the app
+class ScriptNameMiddleware:
+    def __init__(self, app, script_name: str):
+        self.app = app
+        self.script_name = (script_name or "").rstrip("/")
+
+    def __call__(self, environ, start_response):
+        if self.script_name:
+            environ["SCRIPT_NAME"] = self.script_name
+        return self.app(environ, start_response)
+
+
+# Trust reverse proxy headers (Caddy)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+# Mount under a URL prefix when set (e.g. /apps/dbkk)
+app.wsgi_app = ScriptNameMiddleware(app.wsgi_app, os.environ.get("SCRIPT_NAME", ""))
+
 # Initialize extensions
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)

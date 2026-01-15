@@ -192,7 +192,7 @@
                         {% if book.openlibrary_medcover_url %}
                         <img src="{{ book.openlibrary_medcover_url }}" alt="{{ book.title }} Cover" loading="lazy">
                         {% else %}
-                        <img src="/static/dist/images/lincoln-inaug-bible.jpg" alt="Default Book Cover">
+                        <img src="{{ url_for('static', filename='dist/images/lincoln-inaug-bible.jpg') }}" alt="Default Book Cover">
                         {% endif %}
                     </div>
                 </div>

@@ -1,6 +1,8 @@
 
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-<script>window.jQuery || document.write('<script src="/static/dist/vendor/js/jquery-1.11.2.min.js"><\/script>')</script>
-
-<script src="/static/dist/all.min.js"></script>
-
+<script>
+  window.jQuery || document.write(
+    '<script src="{{ url_for("static", filename="dist/vendor/js/jquery-1.11.2.min.js") | e }}"><\/script>'
+  )
+</script>
+<script src="{{ url_for('static', filename='dist/all.min.js') }}"></script>
